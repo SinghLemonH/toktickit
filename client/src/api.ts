@@ -16,6 +16,16 @@ export interface SystemStatus {
 //        return { online: true, categories }.
 // Throwing on failure lets the UI show a single Offline/error state.
 export async function checkSystem(): Promise<SystemStatus> {
-  // TODO(Issue 2 & 4): implement the two fetch calls described above.
-  throw new Error("checkSystem not implemented yet");
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/api/health`);
+  } catch {
+    throw new Error("Unable to connect to TokTickIT API");
+  }
+
+  if (!res.ok) {
+    throw new Error("Unable to connect to TokTickIT API");
+  }
+
+  return { online: true, categories: [] };
 }
