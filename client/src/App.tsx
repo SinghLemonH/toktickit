@@ -33,16 +33,12 @@ export default function App() {
       {state === "success" && (
         <div className="mt-3">
           <p className="mb-1"><strong>System Status:</strong> Online</p>
-          {categories.length > 0 && (
-            <>
-              <p className="mb-1"><strong>Supported Request Categories:</strong></p>
-              <ul>
-                {categories.map((c) => (
-                  <li key={c.id}>{c.name}</li>
-                ))}
-              </ul>
-            </>
-          )}
+          <p className="mb-1"><strong>Supported Request Categories:</strong></p>
+          <ul>
+            {categories.map((c) => (
+              <li key={c.id}>{c.name}</li>
+            ))}
+          </ul>
         </div>
       )}
 
