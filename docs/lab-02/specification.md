@@ -1,0 +1,345 @@
+# Lab 2 Sprint Engineering Specification — TokTickIT Requester MVP
+
+Status: DRAFT v1 — for review with AI spec agent and course reviewer before implementation begins.
+
+## 1. Sprint Goal
+
+Deliver a working Requester-facing ticketing experience for TokTickIT: a Requester can create an IT
+support ticket with attachments, receive a system-generated Ticket Number, and later find, open, and
+manage their own tickets through My Tickets and Ticket Detail. A temporary Development Requester
+Selector simulates per-user ownership ahead of real authentication in Lab 3. The sprint also establishes
+the reusable Zen Green UI foundation (forms, lists, badges, validation, loading/empty/error states,
+responsive layout) that later labs will build on.
+
+## 2. Stakeholder Request Interpretation
+
+IT wants Requesters to be able to submit a support ticket (problem description, category, related
+system, requested priority, attachments) and get a Ticket Number back immediately. Requesters must
+then be able to find that ticket again, search/filter their own ticket history, and inspect or update
+attachments on it — but never see another Requester's tickets. Because real login isn't ready, the app
+needs a stand-in "choose who you are" screen for testing, clearly labeled as temporary. The visual style
+and component behavior established this sprint must be consistent enough for later sprints to reuse
+without redesigning each screen.
+
+## 3. Scope
+
+### Included
+- Development Requester Selection screen and selected-Requester context (test mechanism only)
+- Create Ticket: form, validation, attachment upload, Ticket Number generation
+- My Tickets: paginated, searchable, filterable, sortable list scoped to the selected Requester
+- Requester Ticket Detail: read-only ticket info + attachment list
+- Attachment lifecycle: add to existing ticket, download active attachment, soft-remove
+- Ownership enforcement (a Requester can never read another Requester's ticket/attachment)
+- Zen Green UI foundation: color tokens, form/list/badge/validation/loading/empty/error patterns,
+  responsive rules for desktop/tablet/mobile
+- Seed data for Category, RelatedSystem, and Development Requesters (active + inactive)
+
+### Excluded
+- Authentication/security: real login, passwords, sessions, tokens, role-based authorization
+- IT Staff workflow: staff dashboard/queue, claiming/reassigning tickets, IT Priority changes
+- Ticket collaboration: Public Comments, Internal Notes, Actions Taken
+- Ticket lifecycle beyond initial "New" status (resolve, close, reopen, cancel)
+- Administration functions (user/reference-data management)
+
+## 4. Functional Requirements
+
+- FR-01 The system shall let a user select an active Development Requester before any ticket screen
+  is usable.
+- FR-02 The system shall let the user change the selected Development Requester at any time via a
+  "Change Requester" action.
+- FR-03 The system shall let the selected Requester create a Ticket with Category, Related System,
+  Summary, Description, Requested Priority, and 0–5 Attachments.
+- FR-04 The system shall generate a unique, backend-assigned Ticket Number upon successful creation
+  and display it to the user.
+- FR-05 The system shall let the selected Requester retrieve a paginated list of only their own Tickets.
+- FR-06 The system shall let the Requester search their Tickets by Ticket Number or Summary text.
+- FR-07 The system shall let the Requester filter their Tickets by Category, Requested Priority, IT
+  Priority, and Current Status.
+- FR-08 The system shall let the Requester sort their Tickets by Ticket Number, Created Date, and Last
+  Updated (ascending/descending).
+- FR-09 The system shall let the Requester open a Ticket Detail screen for a Ticket they own.
+- FR-10 The system shall reject retrieval of a Ticket or its Attachments when the selected Requester is
+  not the owner, returning no ticket data.
+- FR-11 The system shall let the Requester add a permitted Attachment to an existing owned Ticket,
+  subject to type/size/count limits.
+- FR-12 The system shall let the Requester download an active (non-removed) Attachment they own.
+- FR-13 The system shall let the Requester soft-remove an Attachment they own, with a required
+  removal reason.
+- FR-14 The system shall retain removed-Attachment metadata visibly on the Ticket but block its
+  download/preview.
+- FR-15 The system shall show clear loading, empty, no-results, and failure states on every data-driven
+  screen (Requester selector, My Tickets, Ticket Detail).
+- FR-16 The system shall preserve entered form values on the Create Ticket screen after a failed
+  submission (validation or API failure).
+- FR-17 The system shall expose active Categories and active Related Systems for use in the Create
+  Ticket form.
+- FR-18 The system shall exclude inactive Development Requesters from the selector.
+
+## 5. Business Rules
+
+**Ticket defaults and system-generated values**
+- BR-01 The official Ticket Number is generated by the backend and must be unique (format:
+  `TKT-YYYY-NNNNNN`, zero-padded sequential per year).
+- BR-02 A new Ticket begins with Current Status `NEW`.
+- BR-03 `createdAt` (displayed to the user as "Ticket Date") is set by the backend at creation time
+  (server clock, database default) and is never client-supplied.
+- BR-04 IT Priority is not set by the Requester at creation; it is null/unset until IT Staff workflow
+  (out of scope) assigns it.
+
+**Requester selection and switching**
+- BR-05 Lab 2 uses a Development Requester selector instead of login. The selected identity is for
+  testing only and is not authentication.
+- BR-06 Only Requesters with `isActive = true` appear in the selector.
+- BR-07 Switching the selected Requester immediately invalidates and reloads all Requester-scoped data
+  (My Tickets, any open Ticket Detail context) — cached data from the previous Requester must not be shown.
+- BR-08 If zero active Requesters exist, the selector shows an empty state and blocks Continue.
+
+**Ticket ownership**
+- BR-09 Every Ticket belongs to exactly one Requester (`requesterId`), set at creation from the
+  currently selected Requester and immutable afterward.
+- BR-10 The backend must independently verify ownership on every Ticket/Attachment read, update, or
+  delete request; the frontend's selected Requester is not trusted as authorization.
+- BR-11 A Ticket/Attachment request for a non-owned resource returns a not-found-style response (404),
+  not a 403, to avoid confirming the resource's existence to a non-owner.
+
+**Search, filtering, sorting, pagination**
+- BR-12 Search matches Ticket Number (exact/prefix) or Summary (case-insensitive substring).
+- BR-13 Filters (Category, Requested Priority, IT Priority, Current Status) are combined with AND logic.
+- BR-14 Default sort is Created Date descending (newest first); Ticket Number is used as a stable
+  secondary sort for tie-breaking.
+- BR-15 Default page size is 10; allowed page sizes are 10, 25, 50. Requests for out-of-range page sizes
+  fall back to the default rather than erroring.
+- BR-16 Requesting a page beyond the last available page returns an empty result set with valid
+  pagination metadata, not an error.
+
+**Validation and duplicate-submission prevention**
+- BR-17 Ticket Summary is required, trimmed, 5–120 characters.
+- BR-18 Ticket Description is required, trimmed, 20–2000 characters.
+- BR-19 Category and Related System are required and must reference an existing active record.
+- BR-20 Requested Priority is required and must be one of `LOW`, `MEDIUM`, `HIGH`.
+- BR-21 The Submit button is disabled while a create request is in flight, preventing duplicate
+  double-click submissions.
+- BR-22 All frontend validation rules are re-enforced on the backend; the backend never trusts
+  client-side validation alone.
+
+**Failure behavior and data retained after errors**
+- BR-23 On validation failure, no Ticket record and no Attachment are created; entered field values
+  remain on screen with field-level error messages.
+- BR-24 On an unexpected server/API failure during creation, the user sees a generic safe error message
+  (no stack traces or internal details) and entered values are preserved for retry.
+- BR-25 If the Ticket record is created but an attached file fails to upload, the Ticket still exists
+  with its Ticket Number, and the user is told which file(s) failed so they can retry the upload
+  afterward via the "add attachment" flow (no automatic Ticket rollback).
+
+**Attachment upload, download, and soft removal**
+- BR-26 Allowed attachment types: JPG/JPEG, PNG, WEBP, PDF (validated by content, not filename
+  extension alone).
+- BR-27 Maximum attachment size is 5 MB per file.
+- BR-28 A Ticket may have at most 5 active (non-removed) Attachments at any time.
+- BR-29 An oversized, wrong-type, or count-exceeding file is rejected client-side with an inline message
+  before upload is attempted, and rejected again server-side if the client check is bypassed.
+- BR-30 Stored filenames are randomized/hashed on disk; the original filename is preserved only as
+  display metadata.
+- BR-31 Removing an Attachment is a soft removal: the record is flagged `removedAt`/`removalReason` and
+  retained; it is never physically deleted in Lab 2.
+- BR-32 A removal reason is required text (1–200 characters) before a soft removal is accepted.
+- BR-33 Only the owning Requester may add or remove an Attachment on their own Ticket.
+- BR-34 A removed Attachment remains visible in the Ticket Detail attachment list as metadata (name,
+  size, uploaded date, removed date, reason) but its download/preview endpoint returns a safe
+  "unavailable" response.
+
+**Inactive Requesters**
+- BR-35 An inactive Requester never appears in the Development Requester selector and cannot be used
+  to create new Tickets, even by direct API call (the create-ticket endpoint validates `isActive` on
+  the resolved Requester).
+- BR-36 Existing Tickets created by a Requester who is later marked inactive remain visible under that
+  Requester's history if that Requester is ever reselected (not reachable via the selector while
+  inactive, but the data itself is not deleted).
+
+**Empty and no-results states**
+- BR-37 My Tickets distinguishes "Requester has zero Tickets ever" (empty state, with a Create Ticket
+  call-to-action) from "current search/filter matches zero Tickets" (no-results state, with a Clear
+  Filters action).
+
+**Ticket Detail access**
+- BR-38 Ticket Detail is reachable only by a Ticket's owner; the URL/ID is not sufficient authorization
+  on its own (see BR-10, BR-11).
+
+**Transition to real authentication (Lab 3)**
+- BR-39 The Development Requester Selector, its context, and the `requesterId` foreign key design must
+  be replaceable by a real authenticated-user identity in Lab 3 without a breaking schema change to
+  Ticket or Attachment (the `requesterId` relationship persists; only how the ID is obtained changes).
+
+## 6. UI Specification Summary
+
+Full detail lives in `docs/lab-02/ui-spec.md` (to be authored next). Summary:
+
+- **Styling approach**: Bootstrap 5 (already in use from Lab 1) stays as the base; the Zen Green theme
+  is applied by overriding Bootstrap's CSS theme variables (`--bs-primary`, `--bs-body-bg`, etc.) plus a
+  small number of custom classes for states Bootstrap has no equivalent for (read-only field shading,
+  priority/status badges). No Bootstrap removal, no parallel from-scratch CSS system.
+- **Routing**: `react-router-dom` is added in Lab 2. Routes: `/select-requester`, `/tickets` (My
+  Tickets), `/tickets/create`, `/tickets/:id`.
+- **App shell**: TokTickIT title/logo, primary nav (My Tickets, Create Ticket), current Requester name +
+  Change Requester action, active-page indicator, responsive hamburger nav on mobile.
+- **Development Requester Selection**: dropdown of active Requesters, loading/empty/error states,
+  explanatory "testing only" banner, Continue button.
+- **Create Ticket**: system-generated fields (Ticket Number placeholder, Ticket Date) shown read-only
+  near the top; classification fields (Category, Related System, Requested Priority) grouped; Summary
+  and Description given full-width space; Attachments section below; primary Submit + secondary Cancel
+  at the bottom; busy/disabled Submit state during in-flight requests.
+- **My Tickets**: search box, filter row (Category/Requested Priority/IT Priority/Status), sortable
+  column headers, desktop table / mobile card list, pagination controls, Create Ticket action, Clear
+  Filters action, loading/empty/no-results/failure states.
+- **Ticket Detail**: read-only header fields grouped from the ticket list layout, Attachments panel
+  clearly separated from ticket info, active vs. removed attachment visual distinction, add/remove
+  attachment controls with confirmation for removal.
+- **Shared conventions**: Zen Green color tokens (Section 7 of the handout), required-field asterisk +
+  adjacent validation message, priority/status badges with non-color indicators, consistent
+  loading/empty/error patterns across all three screens, full responsive behavior at desktop (≥992px),
+  tablet (768–991px), and mobile (<768px) breakpoints.
+
+## 7. Data Changes
+
+Status: **LOCKED** — full definition lives in `docs/lab-02/schema.prisma`. Do not edit that file
+without updating this section and getting reviewer sign-off; the two must never drift apart.
+
+- **Category** (extends the existing Lab 1 model) — adds `isActive` (default `true`); no existing
+  columns changed, so the migration is non-breaking.
+- **RelatedSystem** (new) — `id`, `name` (unique), `isActive`, `createdAt`.
+- **DevRequester** (new) — `id`, `name`, `email` (unique), `isActive`, `createdAt`. Intentionally has
+  no password/role fields so it's structurally obvious this is not real authentication.
+- **TicketNumberCounter** (new, internal only) — `year` (PK), `lastValue`. Exists solely to make
+  Ticket Number generation race-free under concurrent requests (an atomic `UPDATE ... RETURNING`
+  inside the create-ticket transaction), instead of a naive `COUNT(*) + 1` that could produce
+  duplicates under concurrency.
+- **Ticket** (new) — `id`, `ticketNumber` (unique), `requesterId`/`categoryId`/`relatedSystemId` (FKs),
+  `summary`, `description`, `requestedPriority` (enum `Priority`), `itPriority` (nullable `Priority`),
+  `currentStatus` (enum `TicketStatus`, default `NEW`), `createdAt` (doubles as "Ticket Date"),
+  `updatedAt`. `TicketStatus` declares the full lifecycle (`NEW, OPEN, IN_PROGRESS, PENDING, RESOLVED,
+  CLOSED, CANCELLED`) now, even though Lab 2 only ever sets `NEW`, so Lab 3+ workflow features add
+  behavior rather than requiring an enum-altering migration on live data.
+- **Attachment** (new) — `id`, `ticketId` (FK), `originalFilename`, `storedFilename` (unique, randomized
+  on disk), `mimeType`, `sizeBytes`, `uploadedAt`, `removedAt`/`removalReason` (nullable — soft removal).
+
+Indexes: `Ticket(requesterId, createdAt)` composite for the default owner-scoped/sorted My Tickets
+query, plus single-column indexes on `categoryId`, `relatedSystemId`, and `currentStatus` for the
+required filters; `Attachment(ticketId)` for the Ticket Detail attachment fetch. Full rationale for
+every field and index is in the inline comments of `schema.prisma` itself.
+
+Migration decision: `Category` gets a non-breaking additive migration (new column with a default); all
+other Lab 2 models are brand-new tables. Seed script is idempotent (upsert by unique key), extending
+Lab 1's existing seed rather than replacing it.
+
+## 8. API Contract
+
+Status: **LOCKED** — full endpoint-by-endpoint contract (request/response shapes, every status code,
+error codes) lives in `docs/lab-02/api-spec.md`. Endpoint summary:
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | /api/categories | List active Categories |
+| GET | /api/related-systems | List active Related Systems |
+| GET | /api/dev-requesters | List active Development Requesters |
+| POST | /api/tickets | Create a Ticket for the selected Requester |
+| GET | /api/tickets | List the selected Requester's Tickets (search/filter/sort/paginate) |
+| GET | /api/tickets/:id | Retrieve one owned Ticket with its active/removed attachment metadata |
+| POST | /api/tickets/:id/attachments | Upload a new Attachment to an owned Ticket |
+| GET | /api/tickets/:id/attachments | List Attachment metadata for an owned Ticket |
+| GET | /api/attachments/:id/download | Download an active, owned Attachment's file |
+| DELETE | /api/attachments/:id | Soft-remove an owned, active Attachment (reason required) |
+
+All endpoints requiring ownership expect an `X-Dev-Requester-Id` header and enforce it server-side per
+BR-10/BR-11 — this is now locked and finalized in `api-spec.md`.
+
+## 9. Acceptance Criteria
+
+- AC-01 Given valid Ticket data, when the Requester submits the form, then one Ticket is saved and the
+  official Ticket Number is displayed.
+- AC-02 Given no Development Requester is selected, when the user attempts to open My Tickets, then the
+  Requester Selection screen is shown.
+- AC-03 Given Requester B is selected, when a Ticket belonging to Requester A is requested, then the
+  Ticket data is not returned.
+- AC-04 Given a required field is left blank, when the Requester submits Create Ticket, then a
+  field-level message appears and no API call is made.
+- AC-05 Given the network/API fails during submission, when the Requester submits Create Ticket, then a
+  safe error message is shown and all entered values remain in the form.
+- AC-06 Given a file over 5MB or of a disallowed type, when the Requester selects it as an attachment,
+  then it is rejected with an inline message before upload.
+- AC-07 Given a Ticket already has 5 active Attachments, when the Requester tries to add a 6th, then the
+  addition is rejected with a clear message.
+- AC-08 Given Requester A has 0 Tickets, when they open My Tickets, then the empty state (not
+  no-results) is shown with a Create Ticket call-to-action.
+- AC-09 Given a search/filter combination matches no Tickets, when applied, then the no-results state is
+  shown with a Clear Filters action.
+- AC-10 Given multiple Tickets exist, when the Requester sorts by Created Date, then the list order
+  updates accordingly without a page reload.
+- AC-11 Given more Tickets exist than one page size, when the Requester pages forward, then the next
+  page of their own Tickets is shown with correct pagination metadata.
+- AC-12 Given an inactive Requester, when the Development Requester selector loads, then that Requester
+  does not appear in the dropdown.
+- AC-13 Given zero active Requesters exist, when the selector loads, then an empty state is shown and
+  Continue is disabled.
+- AC-14 Given a Requester owns a Ticket, when they open its Ticket Detail, then all ticket fields render
+  read-only and the attachment list is shown.
+- AC-15 Given a Requester removes an Attachment, when prompted, then a removal reason is required
+  before the removal is accepted.
+- AC-16 Given an Attachment has been soft-removed, when the Requester views Ticket Detail, then its
+  metadata is still visible but its download link is disabled/unavailable.
+- AC-17 Given a Requester changes the selected Development Requester, when the switch completes, then
+  My Tickets reloads and shows only the new Requester's Tickets.
+- AC-18 Given the app is viewed at a mobile viewport, when Create Ticket, My Tickets, or Ticket Detail
+  render, then no horizontal scrolling or clipped content occurs.
+- AC-19 Given a Ticket is created but its attachment upload fails, when the response returns, then the
+  Ticket Number is still shown and the user is told which attachment(s) need to be retried.
+- AC-20 Given a non-owner attempts to fetch a Ticket or Attachment directly via the API, when the
+  request is made, then a not-found-style response is returned without leaking that the resource exists.
+
+## 10. Definition of Done
+
+**Product completion**
+- [ ] All FR-01…FR-18 implemented and demonstrable
+- [ ] All BR-01…BR-39 enforced (frontend + backend where applicable)
+- [ ] All AC-01…AC-20 have passing automated test evidence, traced in `tests.md`
+- [ ] No required test is skipped, disabled, or commented out
+- [ ] Screens conform to `ui-spec.md` at desktop/tablet/mobile viewports (Playwright screenshots)
+- [ ] Success, validation-failure, and API-failure states are all implemented and tested for Create
+  Ticket, My Tickets, and Ticket Detail
+- [ ] Ownership is enforced server-side, independent of the frontend, and covered by a cross-Requester
+  access test
+- [ ] Seed script is idempotent and produces the required minimum reference/test data
+- [ ] README documents setup, environment variables, and test-run commands, and is current
+
+**Course delivery** (see handout Section 13.2 — tracked separately, not part of product DoD)
+- [ ] Feature branches merged into `lab2-staging` via reviewed PRs; one release PR `lab2-staging → main`
+- [ ] `reviewer.md` and `ai-use.md` completed
+- [ ] Kanban board shows all Issues in Done before submission
+
+## 11. Assumptions and Decisions
+
+- **Lab 1 repository already exists** with backend, frontend, and Prisma already installed and
+  configured. Issue #2 is therefore additive, not a bootstrap: it extends the existing Prisma schema
+  with the five Lab 2 models (Section 7), adds a new migration, and adds the idempotent seed script.
+  `lab2-staging` is branched from the current `main` per handout Section 4.11, as originally specified.
+  Whatever Lab 1's existing models/routes/screens are must be left untouched by Lab 2 work unless a
+  Lab 2 requirement explicitly depends on them.
+- **Ticket Number format** `TKT-YYYY-NNNNNN` was chosen (matches the illustrative Figure 1 example
+  `TKT-2025-001234`) for readability and year-scoped uniqueness; sequence resets are not required in
+  Lab 2 since only one testing year is in play.
+- **Ownership header mechanism**: the selected Requester's ID is sent via a custom header
+  (`X-Dev-Requester-Id`) rather than a body/query param on every request, to keep the pattern uniform
+  across GET/POST/DELETE calls; documented fully in `api-spec.md`.
+- **Non-owner responses return 404, not 403** (BR-11) to avoid confirming resource existence to a
+  non-owner — a defensive default given this will become a security-relevant pattern once Lab 3 adds
+  real auth.
+- **Attachment storage** is local filesystem storage under a server-side uploads directory for Lab 2
+  scope (not cloud storage), since durability across deployments is not a Lab 2 requirement.
+- **Field length limits** (Summary 5–120, Description 20–2000) were chosen to be generous enough for
+  real support tickets while still bounding abuse/oversized input; can be revisited if reviewer
+  disagrees.
+- **Test runner is Vitest + Supertest** (backend) and Vitest + React Testing Library (frontend),
+  matching what Lab 1 already set up. Do not introduce Jest/ts-jest. Playwright is added for E2E in
+  Issue #2 (config only) with the actual E2E spec written in the final QA issue once all screens exist.
+- **AGENTS.md** at the repo root governs AI-coding-agent behavior across all labs (hard boundaries,
+  stack facts, git workflow, commands). It is created/updated as part of Issue #1, before any Lab 2
+  code is written, so it governs even the spec-drafting work itself.
