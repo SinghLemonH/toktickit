@@ -1,5 +1,9 @@
 # AGENTS.md — TokTickIT
 
+> **TL;DR — read this before writing any code.** Extend Lab 1, do not restructure it. Write failing
+> tests first (TDD), then implement. Full detail: see `docs/lab-02/specification.md` Section 8.9 and
+> the "Hard boundaries" section below.
+
 Instructions for any AI coding agent (Claude Code, etc.) working in this repository. Read this file
 in full before making changes.
 

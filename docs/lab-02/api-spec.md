@@ -67,6 +67,11 @@ Creates a Ticket for the Requester identified by `X-Dev-Requester-Id`.
   increment `TicketNumberCounter` for the current year (`UPDATE ... SET lastValue = lastValue + 1
   WHERE year = ? RETURNING lastValue`, upserting the year row first if absent), then format
   `TKT-{year}-{lastValue padded to 6 digits}`.
+  **Edge case**: this format assumes fewer than 1,000,000 tickets per year. If `lastValue` exceeds
+  999999, the number is not truncated — it simply widens past 6 digits (e.g. `TKT-2026-1000000`)
+  rather than overflowing or erroring. This scenario is out of scope for Lab 2's test data (seed +
+  manual testing will never approach that volume) and is noted here only so the behavior is defined
+  rather than undefined if it were ever hit.
 - Success: **201**
   ```json
   {

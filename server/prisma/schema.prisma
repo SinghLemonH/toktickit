@@ -1,5 +1,9 @@
 // Prisma schema — datasource and generator are pre-wired.
 // Your DATABASE_URL lives in server/.env (copy it from .env.example).
+//
+// LOCKED for Lab 2 — see docs/lab-02/schema.prisma for full rationale on every
+// field/index. Do not modify without updating that doc + specification.md
+// Section 7 and getting reviewer sign-off.
 
 generator client {
   provider = "prisma-client-js"
@@ -10,8 +14,111 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ----------------------------------------------------------------------------
+// EXISTING FROM LAB 1 — extended, not replaced.
+// Added: isActive (non-breaking: existing rows get isActive=true via default).
+// ----------------------------------------------------------------------------
 model Category {
   id        Int      @id @default(autoincrement())
   name      String   @unique
+  isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
+
+  tickets Ticket[]
+}
+
+// ----------------------------------------------------------------------------
+// NEW MODELS FOR LAB 2
+// ----------------------------------------------------------------------------
+
+model RelatedSystem {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  tickets Ticket[]
+}
+
+model DevRequester {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  tickets Ticket[]
+}
+
+// Internal helper table for race-free Ticket Number generation.
+// One row per calendar year (format TKT-YYYY-NNNNNN).
+model TicketNumberCounter {
+  year      Int @id
+  lastValue Int @default(0)
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+// Full lifecycle declared now so Lab 3+ workflow features add behavior, not a
+// schema migration. Lab 2 only ever sets NEW.
+enum TicketStatus {
+  NEW
+  OPEN
+  IN_PROGRESS
+  PENDING
+  RESOLVED
+  CLOSED
+  CANCELLED
+}
+
+model Ticket {
+  id           Int    @id @default(autoincrement())
+  ticketNumber String @unique
+
+  requesterId Int
+  requester   DevRequester @relation(fields: [requesterId], references: [id])
+
+  categoryId Int
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  relatedSystemId Int
+  relatedSystem   RelatedSystem @relation(fields: [relatedSystemId], references: [id])
+
+  summary     String
+  description String
+
+  requestedPriority Priority
+  itPriority        Priority?
+  currentStatus     TicketStatus @default(NEW)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  attachments Attachment[]
+
+  @@index([requesterId, createdAt])
+  @@index([categoryId])
+  @@index([relatedSystemId])
+  @@index([currentStatus])
+}
+
+model Attachment {
+  id       Int    @id @default(autoincrement())
+  ticketId Int
+  ticket   Ticket @relation(fields: [ticketId], references: [id])
+
+  originalFilename String
+  storedFilename   String @unique
+  mimeType         String
+  sizeBytes        Int
+
+  uploadedAt    DateTime  @default(now())
+  removedAt     DateTime?
+  removalReason String?
+
+  @@index([ticketId])
 }
