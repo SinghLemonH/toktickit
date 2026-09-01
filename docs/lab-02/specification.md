@@ -315,6 +315,18 @@ BR-10/BR-11 — this is now locked and finalized in `api-spec.md`.
 - [ ] `reviewer.md` and `ai-use.md` completed
 - [ ] Kanban board shows all Issues in Done before submission
 
+## 10.1. Questions for Reviewers
+
+Before Issue #13 (implementation) begins, the reviewer should explicitly confirm:
+
+1. Does this contract cover all the terms specified in the Lab 2 handout?
+2. Are the scope exclusions (Section 3) acceptable — nothing required has been mistakenly excluded?
+3. Are any Acceptance Criteria (Section 9) in conflict with the handout's requirements, or with each
+   other?
+
+Reviewer sign-off on these three questions (via PR approval/comment) is the signal that this contract
+is locked and implementation may begin.
+
 ## 11. Assumptions and Decisions
 
 - **Lab 1 repository already exists** with backend, frontend, and Prisma already installed and
