@@ -23,6 +23,9 @@ export default function AppShell({ children }: { children: ReactNode }) {
             <Link className="nav-link text-white zg-nav-active" to="/tickets">
               My Tickets
             </Link>
+            <Link className="nav-link text-white" to="/tickets/create">
+              Create Ticket
+            </Link>
           </div>
           {requester && (
             <div className="d-flex align-items-center text-white">
