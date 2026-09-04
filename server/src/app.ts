@@ -185,3 +185,80 @@ app.post(
     }
   }
 );
+
+// Lab 2 — Issue #16: My Tickets.
+// Scoped to the requesting Requester only (BR-09, BR-10) — the WHERE clause
+// enforces ownership, never a post-fetch filter.
+const SORTABLE_FIELDS = new Set(["createdAt", "updatedAt", "ticketNumber"]);
+const PAGE_SIZES = new Set([10, 25, 50]);
+
+app.get("/api/tickets", requireActiveRequester, async (req: RequestWithRequester, res: Response) => {
+  try {
+    const prisma = getPrisma();
+
+    const search = typeof req.query.search === "string" ? req.query.search.trim() : "";
+    const categoryId = req.query.categoryId ? Number(req.query.categoryId) : undefined;
+    const requestedPriority =
+      typeof req.query.requestedPriority === "string" ? req.query.requestedPriority : undefined;
+    const itPriority = typeof req.query.itPriority === "string" ? req.query.itPriority : undefined;
+    const currentStatus =
+      typeof req.query.currentStatus === "string" ? req.query.currentStatus : undefined;
+
+    const sortByRaw = typeof req.query.sortBy === "string" ? req.query.sortBy : "createdAt";
+    const sortBy = SORTABLE_FIELDS.has(sortByRaw) ? sortByRaw : "createdAt"; // BR-14 fallback
+    const sortDir = req.query.sortDir === "asc" ? "asc" : "desc";
+
+    const pageRaw = Number(req.query.page);
+    const page = Number.isInteger(pageRaw) && pageRaw > 0 ? pageRaw : 1; // BR-16
+    const pageSizeRaw = Number(req.query.pageSize);
+    const pageSize = PAGE_SIZES.has(pageSizeRaw) ? pageSizeRaw : 10; // BR-15 fallback
+
+    const where: Record<string, unknown> = {
+      requesterId: req.requester!.id, // BR-09/BR-10 — ownership scope
+      ...(search
+        ? {
+            OR: [
+              { ticketNumber: { startsWith: search, mode: "insensitive" } },
+              { summary: { contains: search, mode: "insensitive" } },
+            ],
+          }
+        : {}),
+      ...(categoryId ? { categoryId } : {}),
+      ...(requestedPriority ? { requestedPriority } : {}),
+      ...(itPriority ? { itPriority } : {}),
+      ...(currentStatus ? { currentStatus } : {}),
+    };
+
+    const [totalItems, items] = await Promise.all([
+      prisma.ticket.count({ where }),
+      prisma.ticket.findMany({
+        where,
+        orderBy: [{ [sortBy]: sortDir }, { ticketNumber: "asc" }], // BR-14 stable secondary sort
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        include: { category: { select: { name: true } } },
+      }),
+    ]);
+
+    res.status(200).json({
+      items: items.map((t: (typeof items)[number]) => ({
+        id: t.id,
+        ticketNumber: t.ticketNumber,
+        summary: t.summary,
+        categoryName: t.category.name,
+        requestedPriority: t.requestedPriority,
+        itPriority: t.itPriority,
+        currentStatus: t.currentStatus,
+        createdAt: t.createdAt,
+        updatedAt: t.updatedAt,
+      })),
+      page,
+      pageSize,
+      totalItems,
+      totalPages: Math.max(1, Math.ceil(totalItems / pageSize)),
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Unable to retrieve tickets." } });
+  }
+});

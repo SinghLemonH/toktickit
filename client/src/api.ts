@@ -44,13 +44,17 @@ export async function getActiveRequesters(): Promise<DevRequester[]> {
   return res.json();
 }
 
+// Lab 2 — Issue #15
 export async function getActiveCategories(): Promise<Category[]> {
   const res = await fetch(`${API_URL}/api/categories`);
   if (!res.ok) throw new Error("Unable to load categories");
   return res.json();
 }
 
-export interface RelatedSystem { id: number; name: string; }
+export interface RelatedSystem {
+  id: number;
+  name: string;
+}
 
 export async function getActiveRelatedSystems(): Promise<RelatedSystem[]> {
   const res = await fetch(`${API_URL}/api/related-systems`);
@@ -58,6 +62,52 @@ export async function getActiveRelatedSystems(): Promise<RelatedSystem[]> {
   return res.json();
 }
 
+export interface TicketListItem {
+  id: number;
+  ticketNumber: string;
+  summary: string;
+  categoryName: string;
+  requestedPriority: "LOW" | "MEDIUM" | "HIGH";
+  itPriority: "LOW" | "MEDIUM" | "HIGH" | null;
+  currentStatus: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TicketListResponse {
+  items: TicketListItem[];
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
+}
+
+export interface MyTicketsQuery {
+  search?: string;
+  categoryId?: number;
+  requestedPriority?: string;
+  itPriority?: string;
+  currentStatus?: string;
+  sortBy?: "createdAt" | "updatedAt" | "ticketNumber";
+  sortDir?: "asc" | "desc";
+  page?: number;
+  pageSize?: number;
+}
+
+export async function getMyTickets(
+  requesterId: number,
+  query: MyTicketsQuery = {}
+): Promise<TicketListResponse> {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined && value !== "") params.set(key, String(value));
+  }
+  const res = await fetch(`${API_URL}/api/tickets?${params.toString()}`, {
+    headers: { "X-Dev-Requester-Id": String(requesterId) },
+  });
+  if (!res.ok) throw new Error("Unable to load tickets");
+  return res.json();
+}
 export interface CreateTicketInput {
   categoryId: number;
   relatedSystemId: number;
@@ -67,31 +117,54 @@ export interface CreateTicketInput {
   attachments: File[];
 }
 
-export interface CreateTicketResult { id: number; ticketNumber: string; failedAttachments: string[]; }
-export interface ApiFieldError { fields?: Record<string, string>; message: string; }
-
-export class CreateTicketValidationError extends Error {
-  constructor(message: string, public fields: Record<string, string>) { super(message); }
+export interface CreateTicketResult {
+  id: number;
+  ticketNumber: string;
+  failedAttachments: string[];
 }
 
-export async function createTicket(requesterId: number, input: CreateTicketInput): Promise<CreateTicketResult> {
+export interface ApiFieldError {
+  fields?: Record<string, string>;
+  message: string;
+}
+
+export class CreateTicketValidationError extends Error {
+  fields: Record<string, string>;
+  constructor(message: string, fields: Record<string, string>) {
+    super(message);
+    this.fields = fields;
+  }
+}
+
+export async function createTicket(
+  requesterId: number,
+  input: CreateTicketInput
+): Promise<CreateTicketResult> {
   const formData = new FormData();
   formData.append("categoryId", String(input.categoryId));
   formData.append("relatedSystemId", String(input.relatedSystemId));
   formData.append("summary", input.summary);
   formData.append("description", input.description);
   formData.append("requestedPriority", input.requestedPriority);
-  for (const file of input.attachments) formData.append("attachments", file);
+  for (const file of input.attachments) {
+    formData.append("attachments", file);
+  }
+
   const res = await fetch(`${API_URL}/api/tickets`, {
     method: "POST",
     headers: { "X-Dev-Requester-Id": String(requesterId) },
     body: formData,
   });
+
   if (res.status === 400) {
     const body = await res.json();
     const err: ApiFieldError = body.error;
     throw new CreateTicketValidationError(err.message, err.fields ?? {});
   }
-  if (!res.ok) throw new Error("Unable to create ticket right now. Please try again.");
+
+  if (!res.ok) {
+    throw new Error("Unable to create ticket right now. Please try again.");
+  }
+
   return res.json();
 }
