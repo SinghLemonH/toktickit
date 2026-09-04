@@ -24,21 +24,3 @@ app.get("/api/categories", async (_req: Request, res: Response) => {
     res.status(500).json({ error: "Unable to retrieve categories" });
   }
 });
-
-// Lab 2 — Issue #14: Development Requester Context.
-// Only active requesters are returned (BR-06); inactive requesters must never
-// appear in the selector.
-app.get("/api/dev-requesters", async (_req: Request, res: Response) => {
-  try {
-    const prisma = getPrisma();
-    const requesters = await prisma.devRequester.findMany({
-      where: { isActive: true },
-      orderBy: { id: "asc" },
-      select: { id: true, name: true, email: true },
-    });
-    res.status(200).json(requesters);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Unable to retrieve development requesters" });
-  }
-});
