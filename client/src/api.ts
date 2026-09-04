@@ -43,3 +43,55 @@ export async function getActiveRequesters(): Promise<DevRequester[]> {
   if (!res.ok) throw new Error("Unable to load development requesters");
   return res.json();
 }
+
+export async function getActiveCategories(): Promise<Category[]> {
+  const res = await fetch(`${API_URL}/api/categories`);
+  if (!res.ok) throw new Error("Unable to load categories");
+  return res.json();
+}
+
+export interface RelatedSystem { id: number; name: string; }
+
+export async function getActiveRelatedSystems(): Promise<RelatedSystem[]> {
+  const res = await fetch(`${API_URL}/api/related-systems`);
+  if (!res.ok) throw new Error("Unable to load related systems");
+  return res.json();
+}
+
+export interface CreateTicketInput {
+  categoryId: number;
+  relatedSystemId: number;
+  summary: string;
+  description: string;
+  requestedPriority: "LOW" | "MEDIUM" | "HIGH";
+  attachments: File[];
+}
+
+export interface CreateTicketResult { id: number; ticketNumber: string; failedAttachments: string[]; }
+export interface ApiFieldError { fields?: Record<string, string>; message: string; }
+
+export class CreateTicketValidationError extends Error {
+  constructor(message: string, public fields: Record<string, string>) { super(message); }
+}
+
+export async function createTicket(requesterId: number, input: CreateTicketInput): Promise<CreateTicketResult> {
+  const formData = new FormData();
+  formData.append("categoryId", String(input.categoryId));
+  formData.append("relatedSystemId", String(input.relatedSystemId));
+  formData.append("summary", input.summary);
+  formData.append("description", input.description);
+  formData.append("requestedPriority", input.requestedPriority);
+  for (const file of input.attachments) formData.append("attachments", file);
+  const res = await fetch(`${API_URL}/api/tickets`, {
+    method: "POST",
+    headers: { "X-Dev-Requester-Id": String(requesterId) },
+    body: formData,
+  });
+  if (res.status === 400) {
+    const body = await res.json();
+    const err: ApiFieldError = body.error;
+    throw new CreateTicketValidationError(err.message, err.fields ?? {});
+  }
+  if (!res.ok) throw new Error("Unable to create ticket right now. Please try again.");
+  return res.json();
+}
