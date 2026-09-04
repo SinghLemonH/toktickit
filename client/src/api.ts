@@ -30,16 +30,3 @@ export async function checkSystem(): Promise<SystemStatus> {
   const categories: Category[] = await categoriesRes.json();
   return { online: true, categories };
 }
-
-// Lab 2 — Issue #14
-export interface DevRequester {
-  id: number;
-  name: string;
-  email: string;
-}
-
-export async function getActiveRequesters(): Promise<DevRequester[]> {
-  const res = await fetch(`${API_URL}/api/dev-requesters`);
-  if (!res.ok) throw new Error("Unable to load development requesters");
-  return res.json();
-}
