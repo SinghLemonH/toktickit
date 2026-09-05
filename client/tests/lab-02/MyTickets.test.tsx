@@ -30,9 +30,9 @@ describe("MyTickets", () => {
     vi.spyOn(api, "getMyTickets").mockResolvedValue(emptyResponse);
     renderPage();
     expect(
-      await screen.findByText(/You haven't created any tickets yet/i)
+      await screen.findByText(/No tickets yet/i)
     ).toBeInTheDocument();
-    expect(screen.queryByText(/No tickets match/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/No matches found/i)).not.toBeInTheDocument();
   });
 
   it("shows a list of tickets when the response has items", async () => {

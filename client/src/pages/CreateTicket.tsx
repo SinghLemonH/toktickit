@@ -1,4 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
+import { CheckCircle2, AlertTriangle, Paperclip, X } from "lucide-react";
 import {
   getActiveCategories,
   getActiveRelatedSystems,
@@ -14,13 +16,15 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const MAX_ATTACHMENTS = 5;
 
 type SubmitState = "idle" | "submitting" | "success" | "error";
+type ReferenceState = "loading" | "loaded" | "error";
 
 export default function CreateTicket() {
   const { requester } = useRequester();
+  const navigate = useNavigate();
 
+  const [referenceState, setReferenceState] = useState<ReferenceState>("loading");
   const [categories, setCategories] = useState<Category[]>([]);
   const [relatedSystems, setRelatedSystems] = useState<RelatedSystem[]>([]);
-  const [referenceDataError, setReferenceDataError] = useState(false);
 
   const [categoryId, setCategoryId] = useState("");
   const [relatedSystemId, setRelatedSystemId] = useState("");
@@ -40,20 +44,21 @@ export default function CreateTicket() {
       .then(([cats, systems]) => {
         setCategories(cats);
         setRelatedSystems(systems);
+        setReferenceState("loaded");
       })
-      .catch(() => setReferenceDataError(true));
+      .catch(() => setReferenceState("error"));
   }, []);
 
   function validateClientSide(): Record<string, string> {
     const errors: Record<string, string> = {};
     if (summary.trim().length < 5 || summary.trim().length > 120) {
-      errors.summary = "Summary must be 5-120 characters.";
+      errors.summary = "5-120 characters.";
     }
     if (description.trim().length < 20 || description.trim().length > 2000) {
-      errors.description = "Description must be 20-2000 characters.";
+      errors.description = "20-2000 characters.";
     }
-    if (!categoryId) errors.categoryId = "Select a category.";
-    if (!relatedSystemId) errors.relatedSystemId = "Select a related system.";
+    if (!categoryId) errors.categoryId = "Required.";
+    if (!relatedSystemId) errors.relatedSystemId = "Required.";
     return errors;
   }
 
@@ -63,17 +68,17 @@ export default function CreateTicket() {
     const incoming = Array.from(fileList);
 
     if (attachments.length + incoming.length > MAX_ATTACHMENTS) {
-      setAttachmentError(`You can attach at most ${MAX_ATTACHMENTS} files per ticket.`);
+      setAttachmentError(`Up to ${MAX_ATTACHMENTS} files.`);
       return;
     }
 
     for (const file of incoming) {
       if (!ALLOWED_TYPES.includes(file.type)) {
-        setAttachmentError(`"${file.name}" is not an allowed file type (JPG, PNG, WEBP, PDF only).`);
+        setAttachmentError(`"${file.name}" — JPG, PNG, WEBP, or PDF only.`);
         return;
       }
       if (file.size > MAX_FILE_SIZE) {
-        setAttachmentError(`"${file.name}" is larger than 5MB.`);
+        setAttachmentError(`"${file.name}" is over 5MB.`);
         return;
       }
     }
@@ -112,7 +117,7 @@ export default function CreateTicket() {
         setFieldErrors(err.fields);
         setSubmitState("idle"); // BR-23 — entered values are preserved, nothing was created
       } else {
-        setSubmitError("Something went wrong submitting your ticket. Please try again.");
+        setSubmitError("Couldn't submit. Try again.");
         setSubmitState("error"); // BR-24 — safe message, values preserved for retry
       }
     }
@@ -120,24 +125,36 @@ export default function CreateTicket() {
 
   if (submitState === "success" && result) {
     return (
-      <div className="zg-success-panel rounded p-4">
-        <h1 className="h4 mb-2">Ticket submitted</h1>
-        <p className="mb-1">Your official Ticket Number is:</p>
+      <div className="zg-success-panel p-4 text-center">
+        <CheckCircle2 size={36} className="mb-2" aria-hidden="true" />
+        <h1 className="h5 mb-2">Ticket created</h1>
         <p className="display-6 fw-bold mb-3">{result.ticketNumber}</p>
-        <button
-          type="button"
-          className="btn btn-primary me-2"
-          onClick={() => window.location.assign("/tickets")}
-        >
-          View My Tickets
-        </button>
-        <button
-          type="button"
-          className="btn btn-outline-secondary"
-          onClick={() => window.location.reload()}
-        >
-          Create Another
-        </button>
+        <div>
+          <button
+            type="button"
+            className="btn btn-primary me-2"
+            onClick={() => window.location.assign("/tickets")}
+          >
+            My Tickets
+          </button>
+          <button
+            type="button"
+            className="btn btn-outline-secondary"
+            onClick={() => window.location.reload()}
+          >
+            New Ticket
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (referenceState === "loading") {
+    return (
+      <div className="text-center py-5">
+        <div className="spinner-border text-success" role="status">
+          <span className="visually-hidden">Loading…</span>
+        </div>
       </div>
     );
   }
@@ -146,15 +163,17 @@ export default function CreateTicket() {
     <div>
       <h1 className="h4 mb-4">Create Ticket</h1>
 
-      {referenceDataError && (
-        <div className="alert alert-danger" role="alert">
-          Unable to load categories or related systems. Please refresh and try again.
+      {referenceState === "error" && (
+        <div className="zg-state-panel zg-state-error py-3 mb-3">
+          <AlertTriangle size={24} aria-hidden="true" />
+          <span>Couldn't load form data. Refresh to retry.</span>
         </div>
       )}
 
       {submitState === "error" && submitError && (
-        <div className="alert alert-danger" role="alert">
-          {submitError}
+        <div className="zg-state-panel zg-state-error py-3 mb-3">
+          <AlertTriangle size={24} aria-hidden="true" />
+          <span>{submitError}</span>
         </div>
       )}
 
@@ -164,7 +183,7 @@ export default function CreateTicket() {
             <label className="form-label fw-semibold">Ticket Number</label>
             <input
               className="form-control form-control-readonly"
-              value="Assigned after submission"
+              value="Auto-assigned"
               disabled
               readOnly
             />
@@ -191,7 +210,7 @@ export default function CreateTicket() {
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
             >
-              <option value="">Choose…</option>
+              <option value="">Select…</option>
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
@@ -212,7 +231,7 @@ export default function CreateTicket() {
               value={relatedSystemId}
               onChange={(e) => setRelatedSystemId(e.target.value)}
             >
-              <option value="">Choose…</option>
+              <option value="">Select…</option>
               {relatedSystems.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name}
@@ -225,7 +244,7 @@ export default function CreateTicket() {
           </div>
           <div className="col-md-4">
             <label htmlFor="priority" className="form-label fw-semibold">
-              Requested Priority <span className="text-danger">*</span>
+              Priority <span className="text-danger">*</span>
             </label>
             <select
               id="priority"
@@ -274,8 +293,8 @@ export default function CreateTicket() {
         </div>
 
         <div className="mb-4">
-          <label htmlFor="attachments" className="form-label fw-semibold">
-            Attachments
+          <label htmlFor="attachments" className="form-label fw-semibold d-flex align-items-center gap-1">
+            <Paperclip size={14} aria-hidden="true" /> Attachments
           </label>
           <input
             id="attachments"
@@ -286,11 +305,12 @@ export default function CreateTicket() {
             onChange={(e) => handleFilesSelected(e.target.files)}
           />
           <div className="form-text">
-            {attachments.length} of {MAX_ATTACHMENTS} attachments
+            {attachments.length}/{MAX_ATTACHMENTS}
           </div>
           {attachmentError && (
-            <div className="alert alert-danger mt-2 py-2 small" role="alert">
-              {attachmentError}
+            <div className="d-flex align-items-center gap-2 text-danger small mt-2">
+              <AlertTriangle size={14} aria-hidden="true" />
+              <span>{attachmentError}</span>
             </div>
           )}
           {attachments.length > 0 && (
@@ -300,8 +320,10 @@ export default function CreateTicket() {
                   key={`${file.name}-${index}`}
                   className="list-group-item d-flex justify-content-between align-items-center"
                 >
-                  <span>
-                    {file.name} <span className="text-muted small">({Math.round(file.size / 1024)} KB)</span>
+                  <span className="d-flex align-items-center gap-2">
+                    <Paperclip size={14} aria-hidden="true" />
+                    {file.name}{" "}
+                    <span className="text-muted small">({Math.round(file.size / 1024)} KB)</span>
                   </span>
                   <button
                     type="button"
@@ -310,7 +332,7 @@ export default function CreateTicket() {
                     title={`Remove ${file.name}`}
                     onClick={() => removeAttachment(index)}
                   >
-                    Remove
+                    <X size={14} aria-hidden="true" />
                   </button>
                 </li>
               ))}
@@ -319,7 +341,12 @@ export default function CreateTicket() {
         </div>
 
         <div className="d-flex justify-content-end gap-2">
-          <button type="button" className="btn btn-outline-secondary" disabled={submitState === "submitting"}>
+          <button
+            type="button"
+            className="btn btn-outline-secondary"
+            disabled={submitState === "submitting"}
+            onClick={() => navigate("/tickets")}
+          >
             Cancel
           </button>
           <button type="submit" className="btn btn-primary" disabled={submitState === "submitting"}>

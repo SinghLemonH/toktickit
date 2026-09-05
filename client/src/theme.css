@@ -3,6 +3,11 @@
   Bootstrap classes (.btn-primary, .form-control, .table, etc.) pick up the
   theme automatically. Loaded AFTER bootstrap.min.css in main.tsx.
   See docs/lab-02/ui-spec.md Section 1 for full token rationale.
+
+  This revision also softens the visual language toward a calmer,
+  higher-whitespace "Apple-ish" feel: larger corner radii, quieter shadows,
+  slightly wider letter-spacing on headings, and smooth (but brief)
+  transitions on interactive states. The color palette itself is unchanged.
 */
 
 :root {
@@ -12,15 +17,114 @@
   --bs-info-rgb: 11, 122, 70;
   --bs-body-bg: #f5f7f6;
   --bs-body-color: #1f2e28;
-  --bs-border-color: #d8e2dd;
+  --bs-border-color: #dde5e1;
+  --bs-border-radius: 0.75rem;
+  --bs-border-radius-sm: 0.5rem;
+  --bs-border-radius-lg: 1rem;
+
+  /* Links: Bootstrap does not derive these from --bs-primary automatically. */
+  --bs-link-color: #0b7a46;
+  --bs-link-color-rgb: 11, 122, 70;
+  --bs-link-hover-color: #006b3c;
+  --bs-link-hover-color-rgb: 0, 107, 60;
 
   /* custom tokens not covered by Bootstrap's variable set */
   --zg-pale-green: #eaf6ef;
-  --zg-readonly-bg: #f1f4f2;
+  --zg-readonly-bg: #f3f5f4;
+  --zg-shadow-soft: 0 1px 2px rgba(31, 46, 40, 0.04), 0 8px 24px rgba(31, 46, 40, 0.06);
+  --zg-transition: 150ms ease;
 }
 
-/* Buttons: Bootstrap's .btn-primary reads --bs-primary automatically once the
-   variable above is overridden, so no extra rule is needed there. */
+body {
+  letter-spacing: -0.01em;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  letter-spacing: -0.02em;
+}
+
+/* Calmer cards/panels: soft shadow instead of a hard 1px line doing all the work. */
+.card {
+  border: 1px solid var(--bs-border-color);
+  box-shadow: var(--zg-shadow-soft);
+}
+
+/* Slightly larger, easier hit targets; smooth hover/press without being flashy. */
+.btn {
+  border-radius: var(--bs-border-radius-sm);
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  transition: transform var(--zg-transition), box-shadow var(--zg-transition), background-color var(--zg-transition);
+}
+.btn:active {
+  transform: scale(0.98);
+}
+.btn-primary {
+  --bs-btn-color: #ffffff;
+  --bs-btn-bg: var(--bs-primary);
+  --bs-btn-border-color: var(--bs-primary);
+  --bs-btn-hover-color: #ffffff;
+  --bs-btn-hover-bg: var(--bs-info);
+  --bs-btn-hover-border-color: var(--bs-info);
+  --bs-btn-focus-shadow-rgb: var(--bs-primary-rgb);
+  --bs-btn-active-color: #ffffff;
+  --bs-btn-active-bg: #00522e;
+  --bs-btn-active-border-color: #00522e;
+  --bs-btn-disabled-color: #ffffff;
+  --bs-btn-disabled-bg: var(--bs-primary);
+  --bs-btn-disabled-border-color: var(--bs-primary);
+  background-color: var(--bs-primary);
+  border-color: var(--bs-primary);
+  color: #ffffff;
+}
+.btn-primary:hover {
+  background-color: var(--bs-info);
+  border-color: var(--bs-info);
+  box-shadow: 0 4px 12px rgba(0, 107, 60, 0.25);
+}
+.btn-primary:disabled,
+.btn-primary.disabled {
+  background-color: var(--bs-primary);
+  border-color: var(--bs-primary);
+  opacity: 0.65;
+}
+
+/* Secondary outline style per ui-spec.md Section 5 */
+.btn-outline-primary {
+  --bs-btn-color: var(--bs-primary);
+  --bs-btn-border-color: var(--bs-primary);
+  --bs-btn-hover-color: #ffffff;
+  --bs-btn-hover-bg: var(--bs-primary);
+  --bs-btn-hover-border-color: var(--bs-primary);
+  --bs-btn-focus-shadow-rgb: var(--bs-primary-rgb);
+  --bs-btn-active-color: #ffffff;
+  --bs-btn-active-bg: #00522e;
+  --bs-btn-active-border-color: #00522e;
+  --bs-btn-disabled-color: var(--bs-primary);
+  --bs-btn-disabled-border-color: var(--bs-primary);
+}
+
+.btn-outline-secondary {
+  --bs-btn-color: #33413b;
+  --bs-btn-border-color: var(--bs-border-color);
+  --bs-btn-hover-color: var(--bs-body-color);
+  --bs-btn-hover-bg: #eaf0ec;
+  --bs-btn-hover-border-color: #bcc9c2;
+  --bs-btn-active-color: var(--bs-body-color);
+  --bs-btn-active-bg: #e2eae5;
+  --bs-btn-active-border-color: #bcc9c2;
+}
+
+.form-control,
+.form-select {
+  border-radius: var(--bs-border-radius-sm);
+  transition: border-color var(--zg-transition), box-shadow var(--zg-transition);
+}
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--bs-info);
+  box-shadow: 0 0 0 0.2rem rgba(11, 122, 70, 0.15);
+}
 
 /* Read-only fields: Bootstrap has no built-in equivalent for this state. */
 .form-control-readonly {
@@ -40,34 +144,113 @@
   background-color: var(--zg-pale-green);
   border: 1px solid var(--bs-primary);
   color: #146c43;
+  border-radius: var(--bs-border-radius-lg);
 }
 
 /* Priority / status badges — text label always present, never color-only */
 .zg-badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0.15rem 0.5rem;
+  gap: 0.3rem;
+  padding: 0.2rem 0.6rem;
   border-radius: 999px;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 600;
 }
+.zg-badge svg { width: 12px; height: 12px; }
 .zg-badge-low {
   background-color: var(--zg-pale-green);
   color: #146c43;
 }
 .zg-badge-medium {
-  background-color: #fff3cd;
-  color: #7a5b00;
+  background-color: #fdebd3;
+  color: #9a5b00;
 }
 .zg-badge-high {
-  background-color: #f8d7da;
-  color: #842029;
+  background-color: #fbdcdb;
+  color: #a33a34;
+}
+.zg-badge-status {
+  background-color: #eef1f0;
+  color: #445048;
+}
+.zg-badge-status-new { background-color: var(--zg-pale-green); color: #146c43; }
+.zg-badge-status-open { background-color: #e3edfb; color: #2f5fa8; }
+.zg-badge-status-progress { background-color: #fdebd3; color: #9a5b00; }
+.zg-badge-status-pending { background-color: #e9edf5; color: #4a5a78; }
+.zg-badge-status-resolved { background-color: var(--zg-pale-green); color: #146c43; }
+.zg-badge-status-closed { background-color: #eef1f0; color: #445048; }
+
+/* Breadcrumb, matching the handout's "home icon > page" pattern */
+.zg-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #5c6b64;
+  font-size: 0.9rem;
+}
+.zg-breadcrumb svg { color: #9fb3ab; }
+.zg-breadcrumb-current { color: var(--bs-body-color); font-weight: 600; }
+
+/* Selection-screen icon badge (pale green circle behind the header icon) */
+.zg-icon-circle {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: var(--zg-pale-green);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--bs-primary);
 }
 
 /* Active nav item indicator in the app shell */
 .zg-nav-active {
   border-bottom: 2px solid var(--bs-info);
-  color: var(--bs-info);
+  color: var(--bs-info) !important;
   font-weight: 600;
+}
+
+/* Empty / error / no-results panels: icon + short text, calm and centered. */
+.zg-state-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 3rem 1rem;
+  text-align: center;
+  color: #5c6b64;
+}
+.zg-state-panel svg { color: #9fb3ab; }
+.zg-state-panel.zg-state-error svg { color: #b3261e; }
+
+/* Mobile menu popup (Issue queue: modal nav instead of a crowded top bar) */
+.zg-mobile-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(31, 46, 40, 0.45);
+  z-index: 1050;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 4.5rem 1rem 1rem;
+}
+.zg-mobile-menu-panel {
+  background: #fff;
+  border-radius: var(--bs-border-radius-lg);
+  box-shadow: var(--zg-shadow-soft);
+  width: 100%;
+  max-width: 340px;
+  overflow: hidden;
+}
+.zg-mobile-menu-panel .nav-link {
+  padding: 0.9rem 1.25rem;
+  color: var(--bs-body-color);
+  border-bottom: 1px solid var(--bs-border-color);
+}
+.zg-mobile-menu-panel .nav-link:last-child { border-bottom: none; }
+.zg-mobile-menu-panel .nav-link.zg-nav-active {
+  color: var(--bs-info) !important;
+  background-color: var(--zg-pale-green);
+  border-bottom-color: transparent;
 }

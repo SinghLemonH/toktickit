@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { UserCog, AlertTriangle, ShieldCheck, CheckCircle2 } from "lucide-react";
 import { getActiveRequesters, type DevRequester } from "../api.js";
 import { useRequester } from "../context/RequesterContext.js";
 
@@ -9,7 +10,7 @@ export default function RequesterSelection() {
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [requesters, setRequesters] = useState<DevRequester[]>([]);
   const [selectedId, setSelectedId] = useState<string>("");
-  const { selectRequester } = useRequester();
+  const { selectRequester, requester } = useRequester();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -36,42 +37,42 @@ export default function RequesterSelection() {
   }
 
   return (
-    <div className="container py-5" style={{ maxWidth: 480 }}>
+    <div className="container py-5" style={{ maxWidth: 440 }}>
       <div className="card p-4 text-center">
-        <div className="mb-3" aria-hidden="true" style={{ fontSize: "2rem" }}>
-          👤
+        <div className="mb-3 d-flex justify-content-center text-success" aria-hidden="true">
+          <UserCog size={40} strokeWidth={1.5} />
         </div>
-        <h1 className="h4 mb-2">Select Development Requester</h1>
+        <h1 className="h4 mb-2">Select Requester</h1>
         <p className="text-muted small mb-4">
-          Choose a development requester to simulate the current requester context for Lab 2. This
-          is for testing only and is not a login screen.
+          For Lab 2 testing only — not a login.
         </p>
 
         {loadState === "loading" && (
           <div className="my-3">
             <div className="spinner-border text-success" role="status">
-              <span className="visually-hidden">Loading requesters…</span>
+              <span className="visually-hidden">Loading…</span>
             </div>
           </div>
         )}
 
         {loadState === "error" && (
-          <div className="alert alert-danger text-start" role="alert">
-            Unable to load development requesters right now. Please try again.
+          <div className="zg-state-panel zg-state-error py-3">
+            <AlertTriangle size={28} aria-hidden="true" />
+            <span>Couldn't load requesters. Try again.</span>
           </div>
         )}
 
         {loadState === "empty" && (
-          <div className="alert alert-warning text-start" role="alert">
-            No active development requesters are available. Ask an administrator to seed or
-            activate at least one requester.
+          <div className="zg-state-panel py-3">
+            <AlertTriangle size={28} aria-hidden="true" />
+            <span>No active requesters available.</span>
           </div>
         )}
 
         {loadState === "loaded" && (
           <div className="text-start mb-4">
             <label htmlFor="requester-select" className="form-label fw-semibold">
-              Development Requester <span className="text-danger">*</span>
+              Requester <span className="text-danger">*</span>
             </label>
             <select
               id="requester-select"
@@ -80,7 +81,7 @@ export default function RequesterSelection() {
               onChange={(e) => setSelectedId(e.target.value)}
             >
               <option value="" disabled>
-                Choose a requester…
+                Select…
               </option>
               {requesters.map((r) => (
                 <option key={r.id} value={r.id}>
@@ -88,24 +89,34 @@ export default function RequesterSelection() {
                 </option>
               ))}
             </select>
-            <div className="alert alert-success mt-3 mb-0 py-2 small">
-              Only active development requesters are shown.
+            <div className="d-flex align-items-center gap-2 mt-3 small text-success">
+              <CheckCircle2 size={14} aria-hidden="true" />
+              <span>Only active requesters shown</span>
             </div>
           </div>
         )}
 
-        <div className="border rounded p-3 mb-4 text-start small text-muted">
-          <strong>Authentication coming in Lab 3.</strong> In Lab 3, this selection will be replaced
-          with secure authentication so you can access the system with your own account.
+        <div className="d-flex align-items-start gap-2 border rounded p-3 mb-4 text-start small text-muted">
+          <ShieldCheck size={18} className="flex-shrink-0 mt-1" aria-hidden="true" />
+          <span>Real login arrives in Lab 3.</span>
         </div>
 
-        <div className="d-flex justify-content-end">
+        <div className="d-flex justify-content-end gap-2">
+          {requester && (
+            <button
+              type="button"
+              className="btn btn-outline-secondary"
+              onClick={() => navigate("/tickets")}
+            >
+              Cancel
+            </button>
+          )}
           <button
             className="btn btn-primary"
             disabled={loadState !== "loaded" || !selectedId}
             onClick={handleContinue}
           >
-            Continue →
+            Continue
           </button>
         </div>
       </div>
