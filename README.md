@@ -1,4 +1,4 @@
-# TokTickIT — IT Service Desk (Lab 1: Full-Stack Hello World)
+# TokTickIT IT Service Desk (Lab 1: Full-Stack Hello World)
 
 CPE 334 — Individual Sprint 1. A vertical slice proving React (Vite) → Express API → Prisma ORM → PostgreSQL all work together.
 
