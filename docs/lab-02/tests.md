@@ -89,14 +89,14 @@ handout):
 Run against Create Ticket, My Tickets, and Ticket Detail at 375px (mobile), 850px (tablet), and 1280px
 (desktop):
 
-- [ ] No horizontal page scrolling at any width
-- [ ] No clipped labels or truncated button text
-- [ ] No overlapping elements or messages
-- [ ] Required-field asterisk always paired with a validation message on error
-- [ ] Read-only fields visually distinct from editable fields at every width
-- [ ] Priority/status badges legible and consistent (not relying on color alone)
-- [ ] Attachment names don't overflow their container
-- [ ] Pagination controls remain usable/tappable on mobile
+- [x] No horizontal page scrolling at any width
+- [x] No clipped labels or truncated button text
+- [x] No overlapping elements or messages
+- [x] Required-field asterisk always paired with a validation message on error
+- [x] Read-only fields visually distinct from editable fields at every width
+- [x] Priority/status badges legible and consistent (not relying on color alone)
+- [x] Attachment names don't overflow their container
+- [x] Pagination controls remain usable/tappable on mobile
 
 ## 5. Test Commands
 
@@ -108,10 +108,49 @@ npx playwright test                # E2E + responsive screenshots (from repo roo
 
 ## 6. Final Results
 
-To be filled in before submission — paste the final passing test-run output here, run from the final
-`main` branch.
+All automated test suites pass cleanly across all layers:
+
+### 1. Server Unit & API Tests (Vitest + Supertest)
+```
+ ✓ tests/lab-01/health.test.ts (1 test)
+ ✓ tests/lab-01/categories.test.ts (1 test)
+ ✓ tests/lab-02/dev-requesters.api.test.ts (1 test)
+ ✓ tests/lab-02/create-ticket.api.test.ts (4 tests)
+ ✓ tests/lab-02/ticket-detail.api.test.ts (4 tests)
+ ✓ tests/lab-02/my-tickets.api.test.ts (5 tests)
+ ✓ tests/lab-02/ticket-number.unit.test.ts (2 tests)
+ ✓ tests/lab-02/attachments.api.test.ts (10 tests)
+
+ Test Files  8 passed (8)
+      Tests  28 passed (28)
+```
+
+### 2. Frontend Component & UI Tests (Vitest + React Testing Library)
+```
+ ✓ tests/lab-02/RouteGuard.test.tsx (2 tests)
+ ✓ tests/lab-01/App.test.tsx (3 tests)
+ ✓ tests/lab-02/MyTickets.test.tsx (3 tests)
+ ✓ tests/lab-02/TicketDetail.test.tsx (2 tests)
+ ✓ tests/lab-02/RequesterSelection.test.tsx (3 tests)
+ ✓ tests/lab-02/AttachmentSection.test.tsx (2 tests)
+ ✓ tests/lab-02/CreateTicket.test.tsx (3 tests)
+
+ Test Files  7 passed (7)
+      Tests  18 passed (18)
+```
+
+### 3. End-to-End & Responsive Tests (Playwright)
+```
+Running 4 tests using 1 worker
+
+  ok 1 [chromium] › e2e/lab-02/requester-ticket-flow.spec.ts: E2E-01: Select Requester A -> create ticket -> verify in My Tickets -> switch to Requester B -> verify isolation
+  ok 2 [chromium] › e2e/lab-02/requester-ticket-flow.spec.ts: E2E-02: Ticket Detail, Add Attachment, Soft Removal with Reason
+  ok 3 [chromium] › e2e/lab-02/requester-ticket-flow.spec.ts: Cross-Requester Direct Access Protection (AC-03, AC-20)
+  ok 4 [chromium] › e2e/lab-02/requester-ticket-flow.spec.ts: RESP: Capture Responsive Screenshots at 375px, 850px, 1280px
+
+  4 passed
+```
 
 ## 7. Known Limitations or Deferred Tests
 
-To be filled in if any planned test is deferred with reviewer approval (should be empty in a
-compliant submission — no required test may be skipped).
+None. All 20 Acceptance Criteria (AC-01 through AC-20) and all planned tests have passing automated evidence. No tests were skipped or deferred.
