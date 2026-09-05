@@ -18,6 +18,11 @@ all at once at the end.
 | PR | Issue | Outcome |
 |----|-------|---------|
 | [SinghLemonH/toktickit #19 — feature/12-lab2-spec-docs](https://github.com/SinghLemonH/toktickit/pull/19) | Issue #12 (Spec DD & Test DD) | Merged — 3 minor follow-ups noted, addressed in Issue #13 |
+| [SinghLemonH/toktickit #20 — feature/13-extend-lab1-repo](https://github.com/SinghLemonH/toktickit/pull/20) | Issue #13 (Extend Lab 1 Repo) | Approved & Merged |
+| [SinghLemonH/toktickit #23 — feature/14-requester-context](https://github.com/SinghLemonH/toktickit/pull/23) | Issue #14 (Dev Requester Context) | Approved & Merged |
+| [SinghLemonH/toktickit #24 — feature/15-create-tickets](https://github.com/SinghLemonH/toktickit/pull/24) | Issue #15 (Create Ticket) | Approved & Merged |
+| [SinghLemonH/toktickit #25 — feature/16-my-tickets](https://github.com/SinghLemonH/toktickit/pull/25) | Issue #16 (My Tickets) | Approved & Merged |
+| [SinghLemonH/toktickit #26 — feature/17-design-refresh](https://github.com/SinghLemonH/toktickit/pull/26) | Issue #17 (Ticket Detail + Attachments) | Approved & Merged |
 | _add row per PR_ | | |
 
 ### PRs you reviewed (on WATHITx/toktickit)
