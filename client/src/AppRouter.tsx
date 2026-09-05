@@ -3,6 +3,7 @@ import { RequesterProvider } from "./context/RequesterContext.js";
 import RequesterSelection from "./pages/RequesterSelection.js";
 import MyTickets from "./pages/MyTickets.js";
 import CreateTicket from "./pages/CreateTicket.js";
+import TicketDetail from "./pages/TicketDetail.js";
 import RouteGuard from "./components/RouteGuard.js";
 import AppShell from "./components/AppShell.js";
 import App from "./App.js";
@@ -34,6 +35,17 @@ export default function AppRouter() {
               <RouteGuard>
                 <AppShell>
                   <CreateTicket />
+                </AppShell>
+              </RouteGuard>
+            }
+          />
+
+          <Route
+            path="/tickets/:id"
+            element={
+              <RouteGuard>
+                <AppShell>
+                  <TicketDetail />
                 </AppShell>
               </RouteGuard>
             }
