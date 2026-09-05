@@ -5,7 +5,7 @@
 | Field           | You                        | Partner                        |
 |------------------|-----------------------------|----------------------------------|
 | Name             | Wichitchai Suwanno          | Wathit Tritsananawakit           |
-| Student ID       | 67070503495                 | 67070403439                      |
+| Student ID       | 67070403439                 | 67070503495                      |
 | GitHub Username  | SinghLemonH                 | WATHITx                          |
 
 ## Pull Requests Reviewed

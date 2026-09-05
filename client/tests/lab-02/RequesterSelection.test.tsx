@@ -25,16 +25,16 @@ describe("RequesterSelection", () => {
     vi.spyOn(api, "getActiveRequesters").mockResolvedValue([]);
     renderPage();
     await waitFor(() =>
-      expect(screen.getByText(/No active development requesters/i)).toBeInTheDocument()
+      expect(screen.getByText(/No active requesters available/i)).toBeInTheDocument()
     );
-    expect(screen.getByText("Continue →")).toBeDisabled();
+    expect(screen.getByText("Continue")).toBeDisabled();
   });
 
   it("shows a safe error state when loading requesters fails", async () => {
     vi.spyOn(api, "getActiveRequesters").mockRejectedValue(new Error("network down"));
     renderPage();
     await waitFor(() =>
-      expect(screen.getByText(/Unable to load development requesters/i)).toBeInTheDocument()
+      expect(screen.getByText(/Couldn't load requesters/i)).toBeInTheDocument()
     );
   });
 
@@ -44,10 +44,10 @@ describe("RequesterSelection", () => {
     ]);
     renderPage();
 
-    const select = await screen.findByLabelText(/Development Requester/i);
-    expect(screen.getByText("Continue →")).toBeDisabled();
+    const select = await screen.findByLabelText(/Requester/i);
+    expect(screen.getByText("Continue")).toBeDisabled();
 
     await userEvent.selectOptions(select, "1");
-    expect(screen.getByText("Continue →")).not.toBeDisabled();
+    expect(screen.getByText("Continue")).not.toBeDisabled();
   });
 });

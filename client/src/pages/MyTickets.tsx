@@ -1,5 +1,16 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import {
+  Inbox,
+  SearchX,
+  AlertTriangle,
+  ArrowUp,
+  Minus,
+  ArrowDown,
+  CircleDot,
+  Clock,
+  CheckCircle2,
+} from "lucide-react";
 import { getMyTickets, type TicketListItem, type MyTicketsQuery } from "../api.js";
 import { useRequester } from "../context/RequesterContext.js";
 
@@ -7,9 +18,43 @@ type LoadState = "loading" | "loaded" | "error";
 
 function PriorityBadge({ value }: { value: string | null }) {
   if (!value) return <span className="text-muted small">—</span>;
-  const cls =
-    value === "HIGH" ? "zg-badge-high" : value === "LOW" ? "zg-badge-low" : "zg-badge-medium";
-  return <span className={`zg-badge ${cls}`}>{value}</span>;
+  if (value === "HIGH")
+    return (
+      <span className="zg-badge zg-badge-high">
+        <ArrowUp aria-hidden="true" /> High
+      </span>
+    );
+  if (value === "LOW")
+    return (
+      <span className="zg-badge zg-badge-low">
+        <ArrowDown aria-hidden="true" /> Low
+      </span>
+    );
+  return (
+    <span className="zg-badge zg-badge-medium">
+      <Minus aria-hidden="true" /> Medium
+    </span>
+  );
+}
+
+function StatusBadge({ value }: { value: string }) {
+  if (value === "RESOLVED" || value === "CLOSED")
+    return (
+      <span className="zg-badge zg-badge-status-resolved">
+        <CheckCircle2 size={12} aria-hidden="true" /> {value}
+      </span>
+    );
+  if (value === "OPEN" || value === "IN_PROGRESS" || value === "PENDING")
+    return (
+      <span className="zg-badge zg-badge-status-progress">
+        <Clock size={12} aria-hidden="true" /> {value.replace("_", " ")}
+      </span>
+    );
+  return (
+    <span className="zg-badge zg-badge-status-new">
+      <CircleDot size={12} aria-hidden="true" /> {value}
+    </span>
+  );
 }
 
 export default function MyTickets() {
@@ -77,14 +122,14 @@ export default function MyTickets() {
       <div className="d-flex justify-content-between align-items-start mb-3">
         <div>
           <h1 className="h4 mb-1">My Tickets</h1>
-          <p className="text-muted small mb-0">View and track all of your support requests.</p>
+          <p className="text-muted small mb-0">Track your support requests.</p>
         </div>
         <div className="d-flex gap-2">
           <button type="button" className="btn btn-outline-secondary btn-sm" onClick={clearFilters}>
             Clear Filters
           </button>
           <Link to="/tickets/create" className="btn btn-primary btn-sm">
-            + Create Ticket
+            New Ticket
           </Link>
         </div>
       </div>
@@ -93,7 +138,7 @@ export default function MyTickets() {
         <div className="col-md-4">
           <input
             className="form-control"
-            placeholder="Search by ticket number or summary…"
+            placeholder="Search…"
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -137,30 +182,33 @@ export default function MyTickets() {
       {loadState === "loading" && (
         <div className="text-center py-5">
           <div className="spinner-border text-success" role="status">
-            <span className="visually-hidden">Loading tickets…</span>
+            <span className="visually-hidden">Loading…</span>
           </div>
         </div>
       )}
 
       {loadState === "error" && (
-        <div className="alert alert-danger" role="alert">
-          Unable to load your tickets right now. Please try again.
+        <div className="zg-state-panel zg-state-error">
+          <AlertTriangle size={32} aria-hidden="true" />
+          <span>Couldn't load tickets. Try again.</span>
         </div>
       )}
 
       {isEmptyEver && (
-        <div className="text-center py-5">
-          <p className="text-muted mb-3">You haven't created any tickets yet.</p>
-          <Link to="/tickets/create" className="btn btn-primary">
+        <div className="zg-state-panel">
+          <Inbox size={32} aria-hidden="true" />
+          <span>No tickets yet.</span>
+          <Link to="/tickets/create" className="btn btn-primary btn-sm">
             Create your first ticket
           </Link>
         </div>
       )}
 
       {isNoResults && (
-        <div className="text-center py-5">
-          <p className="text-muted mb-3">No tickets match your search or filters.</p>
-          <button type="button" className="btn btn-outline-secondary" onClick={clearFilters}>
+        <div className="zg-state-panel">
+          <SearchX size={32} aria-hidden="true" />
+          <span>No matches found.</span>
+          <button type="button" className="btn btn-outline-secondary btn-sm" onClick={clearFilters}>
             Clear Filters
           </button>
         </div>
@@ -177,14 +225,14 @@ export default function MyTickets() {
                     Ticket No. {sortBy === "ticketNumber" ? (sortDir === "asc" ? "↑" : "↓") : ""}
                   </th>
                   <th role="button" onClick={() => toggleSort("createdAt")}>
-                    Created Date {sortBy === "createdAt" ? (sortDir === "asc" ? "↑" : "↓") : ""}
+                    Created {sortBy === "createdAt" ? (sortDir === "asc" ? "↑" : "↓") : ""}
                   </th>
                   <th>Summary</th>
                   <th>Category</th>
-                  <th>Requested Priority</th>
-                  <th>Current Status</th>
+                  <th>Priority</th>
+                  <th>Status</th>
                   <th role="button" onClick={() => toggleSort("updatedAt")}>
-                    Last Updated {sortBy === "updatedAt" ? (sortDir === "asc" ? "↑" : "↓") : ""}
+                    Updated {sortBy === "updatedAt" ? (sortDir === "asc" ? "↑" : "↓") : ""}
                   </th>
                 </tr>
               </thead>
@@ -200,7 +248,9 @@ export default function MyTickets() {
                     <td>
                       <PriorityBadge value={t.requestedPriority} />
                     </td>
-                    <td>{t.currentStatus}</td>
+                    <td>
+                      <StatusBadge value={t.currentStatus} />
+                    </td>
                     <td>{new Date(t.updatedAt).toLocaleDateString()}</td>
                   </tr>
                 ))}
@@ -216,13 +266,14 @@ export default function MyTickets() {
                 to={`/tickets/${t.id}`}
                 className="card mb-2 p-3 text-decoration-none text-body"
               >
-                <div className="d-flex justify-content-between">
+                <div className="d-flex justify-content-between align-items-center mb-1">
                   <strong>{t.ticketNumber}</strong>
                   <PriorityBadge value={t.requestedPriority} />
                 </div>
                 <div>{t.summary}</div>
-                <div className="text-muted small">
-                  {t.categoryName} · {t.currentStatus}
+                <div className="d-flex align-items-center gap-2 mt-1">
+                  <span className="text-muted small">{t.categoryName}</span>
+                  <StatusBadge value={t.currentStatus} />
                 </div>
               </Link>
             ))}
@@ -230,7 +281,7 @@ export default function MyTickets() {
 
           <div className="d-flex justify-content-between align-items-center mt-3">
             <span className="text-muted small">
-              Showing page {page} of {totalPages} ({totalItems} total)
+              Page {page} of {totalPages} · {totalItems} tickets
             </span>
             <div className="btn-group">
               <button

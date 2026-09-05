@@ -168,3 +168,108 @@ export async function createTicket(
 
   return res.json();
 }
+
+export interface AttachmentMetadata {
+  id: number;
+  originalFilename: string;
+  sizeBytes: number;
+  uploadedAt: string;
+  removedAt: string | null;
+  removalReason: string | null;
+}
+
+export interface TicketDetail {
+  id: number;
+  ticketNumber: string;
+  ticketDate: string;
+  createdAt: string;
+  categoryName: string;
+  relatedSystemName: string;
+  requesterName: string;
+  summary: string;
+  description: string;
+  requestedPriority: "LOW" | "MEDIUM" | "HIGH";
+  itPriority: string | null;
+  currentStatus: string;
+  attachments: AttachmentMetadata[];
+}
+
+export async function getTicketDetail(
+  requesterId: number,
+  ticketId: number
+): Promise<TicketDetail> {
+  const res = await fetch(`${API_URL}/api/tickets/${ticketId}`, {
+    headers: { "X-Dev-Requester-Id": String(requesterId) },
+  });
+  if (res.status === 404) {
+    throw new Error("NOT_FOUND");
+  }
+  if (!res.ok) {
+    throw new Error("Unable to load ticket details");
+  }
+  return res.json();
+}
+
+export async function uploadAttachment(
+  requesterId: number,
+  ticketId: number,
+  file: File
+): Promise<AttachmentMetadata> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await fetch(`${API_URL}/api/tickets/${ticketId}/attachments`, {
+    method: "POST",
+    headers: { "X-Dev-Requester-Id": String(requesterId) },
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error?.message || "Failed to upload attachment");
+  }
+
+  return res.json();
+}
+
+export async function downloadAttachment(
+  requesterId: number,
+  attachmentId: number,
+  filename: string
+): Promise<void> {
+  const res = await fetch(`${API_URL}/api/attachments/${attachmentId}/download`, {
+    headers: { "X-Dev-Requester-Id": String(requesterId) },
+  });
+  if (!res.ok) throw new Error("Unable to download attachment");
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
+}
+
+export async function removeAttachment(
+  requesterId: number,
+  attachmentId: number,
+  reason: string
+): Promise<AttachmentMetadata> {
+  const res = await fetch(`${API_URL}/api/attachments/${attachmentId}`, {
+    method: "DELETE",
+    headers: {
+      "X-Dev-Requester-Id": String(requesterId),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ reason }),
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error?.message || "Unable to remove attachment");
+  }
+
+  return res.json();
+}
