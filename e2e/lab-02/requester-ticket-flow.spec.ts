@@ -22,6 +22,7 @@ test.describe.serial("Requester Ticket Flow (E2E)", () => {
     // 1. Visit selector
     await page.goto("/select-requester");
     await expect(page.locator("h1")).toContainText(/Select Requester/i);
+    await page.screenshot({ path: path.join(SCREENSHOTS_DIR, "select-requester.png") });
 
     // 2. Select Requester A (Jennifer Anderson)
     await page.selectOption("#requester-select", { label: "Jennifer Anderson" });
