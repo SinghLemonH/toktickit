@@ -296,16 +296,33 @@ export default function CreateTicket() {
           <label htmlFor="attachments" className="form-label fw-semibold d-flex align-items-center gap-1">
             <Paperclip size={14} aria-hidden="true" /> Attachments
           </label>
-          <input
-            id="attachments"
-            type="file"
-            className="form-control"
-            multiple
-            accept=".jpg,.jpeg,.png,.webp,.pdf"
-            onChange={(e) => handleFilesSelected(e.target.files)}
-          />
-          <div className="form-text">
-            {attachments.length}/{MAX_ATTACHMENTS}
+          <div className="position-relative">
+            <div className="input-group">
+              <span className="btn btn-outline-secondary mb-0 d-flex align-items-center gap-1">
+                <Paperclip size={14} aria-hidden="true" /> Choose Files
+              </span>
+              <div className="form-control bg-light text-muted text-truncate" style={{ pointerEvents: "none" }}>
+                {attachments.length === 0 ? "No file chosen" : `${attachments.length} file(s) selected`}
+              </div>
+            </div>
+            <input
+              id="attachments"
+              type="file"
+              multiple
+              accept=".jpg,.jpeg,.png,.webp,.pdf"
+              className="position-absolute top-0 start-0 w-100 h-100 opacity-0"
+              style={{ cursor: "pointer" }}
+              onChange={(e) => {
+                handleFilesSelected(e.target.files);
+                e.target.value = "";
+              }}
+            />
+          </div>
+          <div className="form-text d-flex justify-content-between mt-1">
+            <span>Allowed: JPG, PNG, WEBP, PDF (max 5MB each)</span>
+            <span>
+              {attachments.length}/{MAX_ATTACHMENTS}
+            </span>
           </div>
           {attachmentError && (
             <div className="d-flex align-items-center gap-2 text-danger small mt-2">

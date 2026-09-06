@@ -23,7 +23,8 @@ all at once at the end.
 | [SinghLemonH/toktickit #24 — feature/15-create-tickets](https://github.com/SinghLemonH/toktickit/pull/24) | Issue #15 (Create Ticket) | Approved & Merged |
 | [SinghLemonH/toktickit #25 — feature/16-my-tickets](https://github.com/SinghLemonH/toktickit/pull/25) | Issue #16 (My Tickets) | Approved & Merged |
 | [SinghLemonH/toktickit #26 — feature/17-design-refresh](https://github.com/SinghLemonH/toktickit/pull/26) | Issue #17 (Ticket Detail + Attachments) | Approved & Merged |
-| _add row per PR_ | | |
+| [SinghLemonH/toktickit #27 — feature/18-qa-release](https://github.com/SinghLemonH/toktickit/pull/27) | Issue #18 (QA & Release Integration) | Approved & Merged |
+| [SinghLemonH/toktickit #28 — lab2-staging to main](https://github.com/SinghLemonH/toktickit/pull/28) | Lab 2 Sprint Release PR | Approved & Merged |
 
 ### PRs you reviewed (on WATHITx/toktickit)
 
@@ -113,7 +114,7 @@ reviewed._
 ## Sign-off
 
 - [x] Issue #12 / PR #19 reviewed and merged (follow-ups tracked for Issue #13)
-- [ ] PR #21 fully reviewed (all 4 files) and approved
-- [ ] All remaining Lab 2 Issues (#13–#18) reviewed and approved
-- [ ] Final release PR (`lab2-staging → main`) reviewed and approved
-- [ ] Reviewer confirms all required tests pass on the final `main` branch
+- [x] PR #21 fully reviewed (all 4 files) and approved
+- [x] All remaining Lab 2 Issues (#13–#18) reviewed and approved
+- [x] Final release PR (`lab2-staging → main`, PR #28) reviewed and approved
+- [x] Reviewer confirms all required tests pass on the final `main` branch

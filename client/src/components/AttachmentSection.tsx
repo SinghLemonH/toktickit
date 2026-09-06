@@ -174,18 +174,29 @@ export default function AttachmentSection({
             <Upload size={14} aria-hidden="true" /> Add Permitted Attachment
           </label>
           <div className="d-flex align-items-center gap-2">
-            <input
-              id="add-attachment-input"
-              type="file"
-              className="form-control form-control-sm"
-              accept=".jpg,.jpeg,.png,.webp,.pdf"
-              disabled={isUploading}
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleFileUpload(file);
-                e.target.value = "";
-              }}
-            />
+            <div className="position-relative flex-grow-1">
+              <div className="input-group input-group-sm">
+                <span className="btn btn-outline-secondary mb-0 d-flex align-items-center gap-1">
+                  <Upload size={13} aria-hidden="true" /> Choose File
+                </span>
+                <div className="form-control bg-light text-muted text-truncate" style={{ pointerEvents: "none" }}>
+                  No file chosen
+                </div>
+              </div>
+              <input
+                id="add-attachment-input"
+                type="file"
+                accept=".jpg,.jpeg,.png,.webp,.pdf"
+                disabled={isUploading}
+                className="position-absolute top-0 start-0 w-100 h-100 opacity-0"
+                style={{ cursor: isUploading ? "not-allowed" : "pointer" }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleFileUpload(file);
+                  e.target.value = "";
+                }}
+              />
+            </div>
             {isUploading && (
               <span className="spinner-border spinner-border-sm text-success" role="status" aria-hidden="true" />
             )}
