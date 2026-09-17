@@ -1,80 +1,111 @@
 # AGENTS.md — TokTickIT
 
-> **TL;DR — read this before writing any code.** Extend Lab 1, do not restructure it. Write failing
-> tests first (TDD), then implement. Full detail: see `docs/lab-02/specification.md` Section 8.9 and
-> the "Hard boundaries" section below.
+> **TL;DR — READ THIS FIRST BEFORE WRITING CODE OR SWITCHING CONVERSATIONS.**
+> You are working on **Lab 3: Users, Roles, IT Staff Ticketing, and Admin Screens**.
+> Follow Spec-Driven Development (Spec DD) and Test-Driven Development (TDD).
+> Extend Lab 1 and Lab 2; do NOT break, rewrite, or delete existing functionality.
+> **All documentation files under `docs/lab-03/` must be 100% written in formal English.**
 
-Instructions for any AI coding agent (Claude Code, etc.) working in this repository. Read this file
-in full before making changes.
+---
 
-## What this project is
+## ⚡ Quick Resume Board (Live Sprint 3 State Tracker)
 
-TokTickIT is a CPE 334 course project: an IT support ticketing system built incrementally sprint by
-sprint (Lab 1, Lab 2, Lab 3, ...). Each Lab has its own contract under `docs/lab-XX/`.
+When an AI agent starts or resumes work in a new conversation, **immediately read this board** and run the verification commands to know where the project stands.
 
-**You are currently working on Lab 2.** The full engineering contract for this sprint is:
-`docs/lab-02/specification.md`, `docs/lab-02/tests.md`, `docs/lab-02/ui-spec.md`,
-`docs/lab-02/api-spec.md`. Read all four before writing any code for a Lab 2 issue. If something is
-ambiguous or missing, say so explicitly instead of inventing a business rule.
+| Issue | Title | Branch | Status | Key Deliverables |
+| :--- | :--- | :--- | :--- | :--- |
+| **#29** | **Sprint 3 Engineering Contract & Continuity Guide** | `feature/29-sprint3-contract-and-agent-guide` | **In Progress** | `docs/lab-03/` (spec, api, ui, tests, reviewer, ai-use), `AGENTS.md` |
+| **#30** | **Database Evolution, User Migration & Seed Data** | `feature/30-db-migration-and-seed` | Pending | Prisma models (`User`, `Comment`, `InternalNote`), migration script, seed |
+| **#31** | **Authentication Engine & Mandatory Password Change** | `feature/31-auth-and-password-change` | Pending | Cookie auth API, session guards, Login UI, Change Password UI |
+| **#32** | **Requester Regression & Public Comments** | `feature/32-requester-regression-comments` | Pending | Remove DevRequester selector, Public Comments, "Problem Appears Resolved" flag |
+| **#33** | **IT Staff Ticket Queue & Operational Details** | `feature/33-staff-queue-and-ticket-operations` | Pending | Staff Queue (Search, Filter, Sort, Pagination), Claim/Reassign, IT Priority, Status, Internal Notes |
+| **#34** | **Administrator User Management** | `feature/34-admin-user-management` | Pending | User table, Create/Edit user modal, Reset password, Self-deactivation & last admin safety guards |
+| **#35** | **E2E Integration, Visual Artifacts & QA Release** | `feature/35-e2e-artifacts-release` | Pending | Playwright tests, UI screenshots (Desktop/Tablet/Mobile), `reviewer.md`, PR to main |
 
-## Hard boundaries — do not cross these
+### Resume Checklist for Any New Session:
+1. Run `git branch --show-current` and `git status` to verify current branch and uncommitted work.
+2. Verify target branch: all feature work branches off and PRs into **`lab3-staging`** (never directly into `main`).
+3. Check the board above to identify the active issue.
+4. Run test suites (`npm test` in `server/` and `client/`) to ensure the baseline passes.
+5. Re-read the corresponding section in `docs/lab-03/specification.md` and `docs/lab-03/tests.md` before coding.
 
-- **Do not modify, refactor, rename, or delete anything that already exists from Lab 1** (the
-  `Category` model, `/api/categories`, `/api/health`, existing `App.tsx` structure, existing tests)
-  unless a specific Lab 2 issue explicitly asks you to change it. Add alongside, don't rewrite.
-- **Do not implement anything explicitly out of scope for Lab 2**: no login/passwords/sessions/JWT,
-  no IT Staff dashboard, no Public Comments/Internal Notes/Actions Taken, no ticket status changes
-  beyond initial `NEW`, no admin/user-management screens.
-- **Do not report a task "done"** unless the required automated tests for that issue exist, run, and
-  pass. Never skip, disable, or comment out a test to make a suite pass.
-- **Do not invent business rules.** If `specification.md` doesn't cover a case you hit while coding,
-  stop and ask rather than guessing.
+---
 
-## Tech stack (as it actually exists in this repo)
+## What This Project Is
+
+TokTickIT is an IT support ticketing system built incrementally sprint by sprint.
+- **Sprint 1**: Foundation, Health check, Category API & UI.
+- **Sprint 2**: Requester context, Ticket creation, My Tickets table, Attachments, Zen Green theme.
+- **Sprint 3 (Current)**: Real authentication, Role-based authorization (`Requester`, `IT Staff`, `Administrator`), IT Staff Queue & Operational Details, Minimalist Administrator User Management, Public Comments, and Internal Notes.
+
+The engineering contract for Sprint 3 is located in `docs/lab-03/`:
+- `docs/lab-03/specification.md`
+- `docs/lab-03/api-spec.md`
+- `docs/lab-03/ui-spec.md`
+- `docs/lab-03/tests.md`
+- `docs/lab-03/reviewer.md`
+- `docs/lab-03/ai-use.md`
+
+---
+
+## Hard Boundaries — Never Cross These
+
+1. **Extend, Do Not Break**: Existing Lab 1 and Lab 2 functionality must continue working seamlessly. Ticket ownership from Lab 2 is migrated to the new `User` model without data loss.
+2. **Strict RBAC on the Server**: "Hiding a button is not authorization." Every protected route must strictly enforce authentication and role permissions on the Express backend with appropriate HTTP status codes (`401 Unauthorized`, `403 Forbidden`).
+3. **Session & Security Invariants**:
+   - Authentication is handled via **HTTP-only, Secure Cookie** (`toktickit_session`). No auth secrets or JWT tokens stored in localStorage or exposed to client JavaScript.
+   - Passwords must be hashed using `bcrypt` (never stored in plaintext).
+   - Mandatory first-login password change: Users with `mustChangePassword: true` cannot access normal application screens until a valid new password is saved.
+   - Dual-channel confidentiality: `InternalNote` endpoints and data are strictly forbidden to `Requester` roles.
+   - Admin safety guards: Administrators cannot deactivate their own account; the system must never allow deactivating the last active Administrator. No hard user deletion (use deactivation).
+4. **Explicitly Out of Scope for Lab 3**:
+   - No email delivery (no invitation emails, no reset emails).
+   - No self-registration (all accounts are created by Admin or seeded).
+   - No MFA, social login, SSO, or multi-tenant structures.
+   - No IT Staff "Actions Taken" (deferred to Lab 4).
+   - No multiple roles per user (one user = exactly one role).
+5. **Quality & TDD**:
+   - Never report a task "done" without automated tests written, running, and passing.
+   - Never disable, comment out, or skip tests to make a suite pass.
+6. **Documentation Language**:
+   - **All documents under `docs/lab-03/` must be written in 100% pure English.**
+
+---
+
+## Tech Stack
 
 - **Backend**: Express + TypeScript, ESM modules, run via `tsx`. Prisma ORM → PostgreSQL.
-- **Backend tests**: Vitest + Supertest (NOT Jest — do not add Jest or ts-jest to this repo).
-- **Frontend**: React + Vite + TypeScript, styled with **Bootstrap 5**.
-- **Frontend tests**: Vitest + React Testing Library.
-- **Zen Green theme**: implemented as CSS variable overrides on top of Bootstrap (not a Bootstrap
-  removal, not a from-scratch CSS system). Override Bootstrap's theme variables
-  (`--bs-primary`, `--bs-body-bg`, etc.) and add small custom classes only where Bootstrap has no
-  equivalent (e.g. read-only field styling, priority/status badges).
-- **Routing**: `react-router-dom`. Routes for Lab 2: `/select-requester`, `/tickets` (My Tickets),
-  `/tickets/create`, `/tickets/:id`.
-- **File uploads**: `multer` on the backend for attachment handling.
-- **E2E**: Playwright. Configuration is added early (Lab 2 Issue #2) but the actual E2E spec is only
-  written in the final QA issue, once all screens exist.
+- **Backend Tests**: Vitest + Supertest.
+- **Frontend**: React + Vite + TypeScript, styled with **Bootstrap 5** and **Zen Green** CSS variable overrides.
+- **Frontend Tests**: Vitest + React Testing Library.
+- **E2E Testing**: Playwright (`e2e/lab-03/`).
+- **Authentication**: Cookie-based session (`toktickit_session`), bcrypt password hashing.
 
-## Commands
+---
+
+## Standard Commands
 
 ```bash
-# backend
-cd server && npm run dev        # start API
-cd server && npm test           # vitest
+# Backend
+cd server && npm run dev          # Start backend server
+cd server && npm test             # Run Vitest API/unit tests
 cd server && npx prisma migrate dev
-cd server && npm run seed       # idempotent — safe to re-run
+cd server && npm run seed         # Run idempotent seed script
 
-# frontend
-cd client && npm run dev        # start Vite dev server
-cd client && npm test           # vitest + testing-library
+# Frontend
+cd client && npm run dev          # Start Vite dev server
+cd client && npm test             # Run Vitest + React Testing Library
 
-# e2e (once added in Issue #2)
-npx playwright test
+# End-to-End Testing
+npx playwright test               # Run Playwright E2E suite
 ```
 
-## Git workflow (already established from Lab 1 — keep using it)
+---
 
-- Branch naming: `feature/<issue-number>-<short-description>`.
-- Every feature branch → PR into `lab2-staging` (not `main`) for Lab 2 work.
-- Only the final Lab 2 release PR goes `lab2-staging → main`.
-- Never commit directly to `main` or `lab2-staging`.
+## Git Workflow
 
-## When starting any Lab 2 issue
-
-1. Re-read the relevant sections of `docs/lab-02/specification.md`, `api-spec.md`, and `ui-spec.md`
-   for that issue.
-2. List any ambiguities or conflicts you find before writing code.
-3. Write/confirm the failing test(s) for the acceptance criteria this issue covers first.
-4. Implement the smallest correct change to make them pass.
-5. State explicitly which Acceptance Criteria (AC-xx) and which test files you completed.
+- **Base Branch**: `lab3-staging` (created from `main`).
+- **Feature Branch**: `feature/<issue-number>-<short-description>`.
+- **Integration**: Every feature branch merges via Pull Request into `lab3-staging`.
+- **Release**: Only the final Sprint 3 QA release PR merges `lab3-staging` → `main`.
+- **Rule**: Never commit directly to `main` or `lab3-staging`.
