@@ -1,4 +1,4 @@
-# Sprint 3 Specification — TokTickIT Users, Roles, IT Staff Ticketing, and Admin Screens
+# Sprint 3 Specification: TokTickIT Users, Roles, IT Staff Ticketing, and Admin Screens
 
 > **Sprint Context**: Sprint 3 (Lab 3) replaces the temporary Development Requester selector from Lab 2 with secure authentication, role-based authorization (RBAC), operational IT Staff workflows, and minimalist Administrator user management.
 > **Status**: APPROVED
@@ -305,25 +305,25 @@ model InternalNote {
 
 Detailed request/response schemas are specified in `docs/lab-03/api-spec.md`.
 
-- `POST /api/auth/login` — Authenticates user, sets HTTP-only cookie.
-- `POST /api/auth/logout` — Clears session cookie.
-- `GET /api/auth/me` — Returns current authenticated user and role.
-- `POST /api/auth/change-password` — Validates current password, saves new password, clears `mustChangePassword`.
-- `GET /api/tickets` — Continues Lab 2 Requester tickets (filtered strictly to `req.user.id`).
-- `POST /api/tickets` — Creates ticket under `req.user.id`.
-- `GET /api/tickets/:id` — Requester ticket detail with attachments and public comments.
-- `POST /api/tickets/:id/resolve-indicated` — Requester indicates problem resolved.
-- `GET /api/staff/tickets` — IT Staff ticket queue (query params: `q`, `category`, `status`, `requestedPriority`, `itPriority`, `assignedTo`, `page`, `pageSize`, `sortBy`, `sortOrder`).
-- `GET /api/staff/tickets/:id` — IT Staff ticket detail including internal notes.
-- `PATCH /api/staff/tickets/:id/assign` — Claims or assigns ticket to IT Staff/Admin.
-- `PATCH /api/staff/tickets/:id/priority` — Updates IT priority.
-- `PATCH /api/staff/tickets/:id/status` — Updates ticket status following permitted transitions.
-- `GET /api/tickets/:id/comments` & `POST /api/tickets/:id/comments` — Public comments (all authenticated users with ticket access).
-- `GET /api/staff/tickets/:id/notes` & `POST /api/staff/tickets/:id/notes` — Internal notes (`IT_STAFF` and `ADMINISTRATOR` only; `403` for `REQUESTER`).
-- `GET /api/admin/users` — Administrator user list with query search and role filter.
-- `POST /api/admin/users` — Creates new user with initial password.
-- `PATCH /api/admin/users/:id` — Edits user details and active state.
-- `POST /api/admin/users/:id/reset-password` — Sets new initial password for user.
+- `POST /api/auth/login` - Authenticates user, sets HTTP-only cookie.
+- `POST /api/auth/logout` - Clears session cookie.
+- `GET /api/auth/me` - Returns current authenticated user and role.
+- `POST /api/auth/change-password` - Validates current password, saves new password, clears `mustChangePassword`.
+- `GET /api/tickets` - Continues Lab 2 Requester tickets (filtered strictly to `req.user.id`).
+- `POST /api/tickets` - Creates ticket under `req.user.id`.
+- `GET /api/tickets/:id` - Requester ticket detail with attachments and public comments.
+- `POST /api/tickets/:id/resolve-indicated` - Requester indicates problem resolved.
+- `GET /api/staff/tickets` - IT Staff ticket queue (query params: `q`, `category`, `status`, `requestedPriority`, `itPriority`, `assignedTo`, `page`, `pageSize`, `sortBy`, `sortOrder`).
+- `GET /api/staff/tickets/:id` - IT Staff ticket detail including internal notes.
+- `PATCH /api/staff/tickets/:id/assign` - Claims or assigns ticket to IT Staff/Admin.
+- `PATCH /api/staff/tickets/:id/priority` - Updates IT priority.
+- `PATCH /api/staff/tickets/:id/status` - Updates ticket status following permitted transitions.
+- `GET /api/tickets/:id/comments` & `POST /api/tickets/:id/comments` - Public comments (all authenticated users with ticket access).
+- `GET /api/staff/tickets/:id/notes` & `POST /api/staff/tickets/:id/notes` - Internal notes (`IT_STAFF` and `ADMINISTRATOR` only; `403` for `REQUESTER`).
+- `GET /api/admin/users` - Administrator user list with query search and role filter.
+- `POST /api/admin/users` - Creates new user with initial password.
+- `PATCH /api/admin/users/:id` - Edits user details and active state.
+- `POST /api/admin/users/:id/reset-password` - Sets new initial password for user.
 
 ---
 

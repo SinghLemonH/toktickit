@@ -1,4 +1,4 @@
-# Lab 2 Test Plan and Results — TokTickIT
+# Lab 2 Test Plan and Results: TokTickIT
 
 Status: DRAFT v1, to be filled in with Pass/Fail during implementation.
 
@@ -10,11 +10,11 @@ No test is written after the fact to match whatever the AI coding agent happened
 
 Levels used in this project (matching the real stack, not the illustrative Jest examples in the
 handout):
-- **Unit** — Vitest, isolated logic (e.g. Ticket Number formatting, validation functions)
-- **API/Integration** — Vitest + Supertest, hitting the real Express app against a test database
-- **UI Component** — Vitest + React Testing Library
-- **Responsive/Visual** — Playwright screenshots at 3 viewport widths + manual checklist
-- **E2E** — Playwright, full browser flows against the running app
+- **Unit** : Vitest, isolated logic (e.g. Ticket Number formatting, validation functions)
+- **API/Integration** : Vitest + Supertest, hitting the real Express app against a test database
+- **UI Component** : Vitest + React Testing Library
+- **Responsive/Visual** : Playwright screenshots at 3 viewport widths + manual checklist
+- **E2E** : Playwright, full browser flows against the running app
 
 ## 2. Planned Tests
 
@@ -25,26 +25,26 @@ handout):
 | API-01 | API | AC-01 | POST /api/tickets with valid data | 201, ticket saved, ticketNumber returned | `server/tests/lab-02/create-ticket.api.test.ts` |
 | API-02 | API | AC-04 | POST /api/tickets missing summary | 400 VALIDATION_ERROR, fields.summary set | `server/tests/lab-02/create-ticket.api.test.ts` |
 | API-03 | API | AC-04 | POST /api/tickets with description under 20 chars | 400 VALIDATION_ERROR | `server/tests/lab-02/create-ticket.api.test.ts` |
-| API-04 | API | — (BR-19) | POST /api/tickets with unknown categoryId | 400 INVALID_CATEGORY | `server/tests/lab-02/create-ticket.api.test.ts` |
+| API-04 | API | - (BR-19) | POST /api/tickets with unknown categoryId | 400 INVALID_CATEGORY | `server/tests/lab-02/create-ticket.api.test.ts` |
 | API-05 | API | AC-06 | POST /api/tickets with a 6MB attachment | 400 INVALID_ATTACHMENT | `server/tests/lab-02/create-ticket.api.test.ts` |
 | API-06 | API | AC-06 | POST /api/tickets with a .exe attachment | 400 INVALID_ATTACHMENT | `server/tests/lab-02/create-ticket.api.test.ts` |
 | API-07 | API | AC-19 | Ticket created, one attachment upload fails mid-way | 201, ticket returned, failedAttachments populated | `server/tests/lab-02/create-ticket.api.test.ts` |
 | API-08 | API | AC-12 | GET /api/dev-requesters excludes inactive | Inactive requester absent from response | `server/tests/lab-02/dev-requesters.api.test.ts` |
 | API-09 | API | AC-03, AC-20 | GET /api/tickets/:id for a ticket owned by another requester | 404, no ticket data leaked | `server/tests/lab-02/ticket-detail.api.test.ts` |
 | API-10 | API | AC-11 | GET /api/tickets with page=2 pageSize=10 on 15 tickets | Correct 5 remaining items + metadata | `server/tests/lab-02/my-tickets.api.test.ts` |
-| API-11 | API | — (BR-16) | GET /api/tickets with page=99 on 15 tickets | 200, empty items, valid metadata (not an error) | `server/tests/lab-02/my-tickets.api.test.ts` |
+| API-11 | API | - (BR-16) | GET /api/tickets with page=99 on 15 tickets | 200, empty items, valid metadata (not an error) | `server/tests/lab-02/my-tickets.api.test.ts` |
 | API-12 | API | AC-09 | GET /api/tickets?search=zzzznotfound | 200, empty items (no-results case) | `server/tests/lab-02/my-tickets.api.test.ts` |
 | API-13 | API | AC-10 | GET /api/tickets?sortBy=ticketNumber&sortDir=asc | Items ordered correctly | `server/tests/lab-02/my-tickets.api.test.ts` |
-| API-14 | API | — (BR-13) | GET /api/tickets with 2 combined filters | AND logic applied correctly | `server/tests/lab-02/my-tickets.api.test.ts` |
+| API-14 | API | - (BR-13) | GET /api/tickets with 2 combined filters | AND logic applied correctly | `server/tests/lab-02/my-tickets.api.test.ts` |
 | API-15 | API | AC-15 | DELETE /api/attachments/:id without reason | 400 VALIDATION_ERROR | `server/tests/lab-02/attachments.api.test.ts` |
 | API-16 | API | AC-16 | GET /api/attachments/:id/download on a removed attachment | 404, file not served | `server/tests/lab-02/attachments.api.test.ts` |
-| API-17 | API | — (BR-28) | POST attachment on a ticket that already has 5 active | 400 TOO_MANY_ATTACHMENTS | `server/tests/lab-02/attachments.api.test.ts` |
-| API-18 | API | — (BR-33) | DELETE /api/attachments/:id not owned by requester | 404 | `server/tests/lab-02/attachments.api.test.ts` |
-| API-19 | API | — | DELETE an already-removed attachment | 409 ALREADY_REMOVED | `server/tests/lab-02/attachments.api.test.ts` |
+| API-17 | API | - (BR-28) | POST attachment on a ticket that already has 5 active | 400 TOO_MANY_ATTACHMENTS | `server/tests/lab-02/attachments.api.test.ts` |
+| API-18 | API | - (BR-33) | DELETE /api/attachments/:id not owned by requester | 404 | `server/tests/lab-02/attachments.api.test.ts` |
+| API-19 | API | - | DELETE an already-removed attachment | 409 ALREADY_REMOVED | `server/tests/lab-02/attachments.api.test.ts` |
 | UI-01 | UI | AC-02 | Navigate to /tickets with no requester selected | Redirects to /select-requester | `client/tests/lab-02/RouteGuard.test.tsx` |
 | UI-02 | UI | AC-13 | Selector screen with zero active requesters | Empty state shown, Continue disabled | `client/tests/lab-02/RequesterSelection.test.tsx` |
 | UI-03 | UI | AC-04 | Submit Create Ticket with empty Summary | Inline field error, no fetch call made | `client/tests/lab-02/CreateTicket.test.tsx` |
-| UI-04 | UI | — (BR-21) | Click Submit twice quickly | Second click has no effect (button disabled) | `client/tests/lab-02/CreateTicket.test.tsx` |
+| UI-04 | UI | - (BR-21) | Click Submit twice quickly | Second click has no effect (button disabled) | `client/tests/lab-02/CreateTicket.test.tsx` |
 | UI-05 | UI | AC-05 | Submit fails with simulated 500 | Safe error shown, form values retained | `client/tests/lab-02/CreateTicket.test.tsx` |
 | UI-06 | UI | AC-06 | Select an oversized file in the attachment picker | Inline rejection message, no upload attempted | `client/tests/lab-02/AttachmentPicker.test.tsx` |
 | UI-07 | UI | AC-08 | Requester with 0 tickets opens My Tickets | Empty state (not no-results) shown | `client/tests/lab-02/MyTickets.test.tsx` |

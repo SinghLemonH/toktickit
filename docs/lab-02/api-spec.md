@@ -1,19 +1,18 @@
-# Lab 2 API Contract — TokTickIT
+# Lab 2 API Contract: TokTickIT
 
-Status: LOCKED v1 — matches `docs/lab-02/schema.prisma` exactly. Changing an endpoint here requires
+Status: LOCKED v1 - matches `docs/lab-02/schema.prisma` exactly. Changing an endpoint here requires
 updating the schema doc and vice versa; they must never drift apart.
 
 ## Global conventions
 
 - **Ownership header**: every Requester-scoped request sends `X-Dev-Requester-Id: <int>`. There is no
-  session/cookie — this is the entire "who is asking" mechanism for Lab 2 (BR-05).
+  session/cookie - this is the entire "who is asking" mechanism for Lab 2 (BR-05).
 - **Error shape** (all 4xx/5xx responses):
   ```json
   { "error": { "code": "VALIDATION_ERROR", "message": "Human-readable summary", "fields": { "summary": "Summary must be 5-120 characters" } } }
   ```
   `fields` is present only for validation errors (400) and maps field name → message.
-- **Non-owner access** returns `404` with `{ "error": { "code": "NOT_FOUND", "message": "Ticket not found" } }`
-  — never `403` — so a non-owner cannot distinguish "doesn't exist" from "not yours" (BR-11).
+- **Non-owner access** returns `404` with `{ "error": { "code": "NOT_FOUND", "message": "Ticket not found" } }`: never `403` - so a non-owner cannot distinguish "doesn't exist" from "not yours" (BR-11).
 - **Pagination metadata shape** (returned alongside any list):
   ```json
   { "page": 1, "pageSize": 10, "totalItems": 42, "totalPages": 5 }
@@ -25,7 +24,7 @@ updating the schema doc and vice versa; they must never drift apart.
 Returns active Categories for the Create Ticket form.
 
 - Query: none
-- 200 response: `[{ "id": 1, "name": "Hardware" }, ...]` — only rows where `isActive = true`
+- 200 response: `[{ "id": 1, "name": "Hardware" }, ...]` - only rows where `isActive = true`
 - No ownership check (public reference data)
 
 ## GET /api/related-systems
@@ -34,8 +33,7 @@ Same shape/behavior as above, for `RelatedSystem`.
 ## GET /api/dev-requesters
 Returns active Development Requesters for the Selection screen.
 
-- 200 response: `[{ "id": 1, "name": "Jennifer Anderson", "email": "jennifer@example.com" }, ...]` —
-  only `isActive = true` (BR-06)
+- 200 response: `[{ "id": 1, "name": "Jennifer Anderson", "email": "jennifer@example.com" }, ...]` - only `isActive = true` (BR-06)
 - No ownership check (this endpoint is what establishes identity, so it can't require it)
 
 ---
@@ -68,7 +66,7 @@ Creates a Ticket for the Requester identified by `X-Dev-Requester-Id`.
   WHERE year = ? RETURNING lastValue`, upserting the year row first if absent), then format
   `TKT-{year}-{lastValue padded to 6 digits}`.
   **Edge case**: this format assumes fewer than 1,000,000 tickets per year. If `lastValue` exceeds
-  999999, the number is not truncated — it simply widens past 6 digits (e.g. `TKT-2026-1000000`)
+  999999, the number is not truncated - it simply widens past 6 digits (e.g. `TKT-2026-1000000`)
   rather than overflowing or erroring. This scenario is out of scope for Lab 2's test data (seed +
   manual testing will never approach that volume) and is noted here only so the behavior is defined
   rather than undefined if it were ever hit.
@@ -94,9 +92,9 @@ Creates a Ticket for the Requester identified by `X-Dev-Requester-Id`.
   (e.g. disk write error) after passing validation, still return **201** with the successfully
   attached files in `attachments` and the failed filenames in `failedAttachments`, so the frontend can
   tell the user which ones to retry via `POST /api/tickets/:id/attachments`. This only applies to
-  failures *after* validation passed — a validation failure (step 7 above) blocks creation entirely
+  failures *after* validation passed - a validation failure (step 7 above) blocks creation entirely
   and returns 400 with nothing created (BR-23).
-- **500** `INTERNAL_ERROR` for any unexpected failure — generic message only, no stack trace (BR-24).
+- **500** `INTERNAL_ERROR` for any unexpected failure: generic message only, no stack trace (BR-24).
 
 ---
 
@@ -108,11 +106,11 @@ Returns a paginated, filtered, sorted list of the requesting Requester's own Tic
 
 | Param | Type | Default | Notes |
 |---|---|---|---|
-| `search` | string | — | matches `ticketNumber` (prefix, case-insensitive) OR `summary` (substring, case-insensitive) — BR-12 |
-| `categoryId` | number | — | exact match |
-| `requestedPriority` | LOW\|MEDIUM\|HIGH | — | exact match |
-| `itPriority` | LOW\|MEDIUM\|HIGH | — | exact match |
-| `currentStatus` | TicketStatus | — | exact match |
+| `search` | string | - | matches `ticketNumber` (prefix, case-insensitive) OR `summary` (substring, case-insensitive) - BR-12 |
+| `categoryId` | number | - | exact match |
+| `requestedPriority` | LOW\|MEDIUM\|HIGH | - | exact match |
+| `itPriority` | LOW\|MEDIUM\|HIGH | - | exact match |
+| `currentStatus` | TicketStatus | - | exact match |
 | `sortBy` | `createdAt`\|`updatedAt`\|`ticketNumber` | `createdAt` | invalid value falls back to default rather than erroring |
 | `sortDir` | `asc`\|`desc` | `desc` | invalid value falls back to default |
 | `page` | number | 1 | requesting beyond the last page returns an empty `items` array with valid metadata (BR-16) |
@@ -127,8 +125,7 @@ Returns a paginated, filtered, sorted list of the requesting Requester's own Tic
     "page": 1, "pageSize": 10, "totalItems": 42, "totalPages": 5
   }
   ```
-- Only rows where `requesterId` matches the header's resolved Requester are ever returned (BR-09/BR-10)
-  — this is a `WHERE` clause in the query, never a post-fetch filter.
+- Only rows where `requesterId` matches the header's resolved Requester are ever returned (BR-09/BR-10) - this is a `WHERE` clause in the query, never a post-fetch filter.
 
 ---
 
@@ -174,7 +171,7 @@ Streams the file for an active Attachment on an owned Ticket.
 
 - Headers: `X-Dev-Requester-Id` (required)
 - **404** if the Attachment doesn't exist, isn't owned by this Requester (via its Ticket), OR has been
-  soft-removed (BR-34 — removed files are never downloadable, and we don't distinguish "removed" from
+  soft-removed (BR-34 - removed files are never downloadable, and we don't distinguish "removed" from
   "not found" in the response to keep the ownership-hiding behavior consistent)
 - Success: **200** with the file bytes and correct `Content-Type`/`Content-Disposition` headers
 
@@ -182,9 +179,9 @@ Streams the file for an active Attachment on an owned Ticket.
 Soft-removes an active Attachment on an owned Ticket.
 
 - Headers: `X-Dev-Requester-Id` (required)
-- Body: `{ "reason": string }` — required, 1–200 characters (BR-32) → else `400 VALIDATION_ERROR`
+- Body: `{ "reason": string }` - required, 1–200 characters (BR-32) → else `400 VALIDATION_ERROR`
 - **404** if the Attachment doesn't exist or isn't owned (BR-33)
-- **409 ALREADY_REMOVED** if the Attachment is already soft-removed (idempotency guard — removing twice
+- **409 ALREADY_REMOVED** if the Attachment is already soft-removed (idempotency guard: removing twice
   is a conflict, not a silent success)
 - Success: **200** with the updated attachment metadata (`removedAt`/`removalReason` populated)
 

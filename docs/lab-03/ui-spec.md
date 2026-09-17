@@ -1,4 +1,4 @@
-# Sprint 3 UI & Design Specification — TokTickIT
+# Sprint 3 UI & Design Specification: TokTickIT
 
 > **Sprint Context**: Lab 3 extends the **Zen Green** design language established in Lab 2.
 > **Status**: APPROVED
@@ -123,8 +123,8 @@ TokTickIT utilizes Bootstrap 5 themed through CSS custom property overrides in `
   - Problem Resolved Banner: If `isProblemResolvedIndicated === true`, an alert banner is shown: *"Requester indicated that this issue appears resolved. Verify and formally close when ready."*
 - **Conversation Interface (Dual Channels)**:
   - **Tabs**:
-    - **Tab 1: Public Comments** (Icon: Chat bubble) — Shared messages visible to requester.
-    - **Tab 2: Internal Notes** (Icon: Lock / Shield, styled in Amber `#FFF3CD` with warning border) — Explicit staff banner: *"Internal Notes are private and never visible to Requesters."*
+    - **Tab 1: Public Comments** (Icon: Chat bubble): Shared messages visible to requester.
+    - **Tab 2: Internal Notes** (Icon: Lock / Shield, styled in Amber `#FFF3CD` with warning border): Explicit staff banner: *"Internal Notes are private and never visible to Requesters."*
   - Dedicated input box for each tab to prevent accidental cross-posting.
 
 ### 2.7. Screen 7: Administrator User Management (`/admin/users`)
