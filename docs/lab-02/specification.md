@@ -1,6 +1,6 @@
-# Lab 2 Sprint Engineering Specification — TokTickIT Requester MVP
+# Lab 2 Sprint Engineering Specification: TokTickIT Requester MVP
 
-Status: DRAFT v1 — for review with AI spec agent and course reviewer before implementation begins.
+Status: DRAFT v1 - for review with AI spec agent and course reviewer before implementation begins.
 
 ## 1. Sprint Goal
 
@@ -16,7 +16,7 @@ responsive layout) that later labs will build on.
 IT wants Requesters to be able to submit a support ticket (problem description, category, related
 system, requested priority, attachments) and get a Ticket Number back immediately. Requesters must
 then be able to find that ticket again, search/filter their own ticket history, and inspect or update
-attachments on it — but never see another Requester's tickets. Because real login isn't ready, the app
+attachments on it - but never see another Requester's tickets. Because real login isn't ready, the app
 needs a stand-in "choose who you are" screen for testing, clearly labeled as temporary. The visual style
 and component behavior established this sprint must be consistent enough for later sprints to reuse
 without redesigning each screen.
@@ -91,7 +91,7 @@ without redesigning each screen.
   testing only and is not authentication.
 - BR-06 Only Requesters with `isActive = true` appear in the selector.
 - BR-07 Switching the selected Requester immediately invalidates and reloads all Requester-scoped data
-  (My Tickets, any open Ticket Detail context) — cached data from the previous Requester must not be shown.
+  (My Tickets, any open Ticket Detail context) - cached data from the previous Requester must not be shown.
 - BR-08 If zero active Requesters exist, the selector shows an empty state and blocks Continue.
 
 **Ticket ownership**
@@ -201,26 +201,26 @@ Full detail lives in `docs/lab-02/ui-spec.md` (to be authored next). Summary:
 
 ## 7. Data Changes
 
-Status: **LOCKED** — full definition lives in `docs/lab-02/schema.prisma`. Do not edit that file
+Status: **LOCKED** : full definition lives in `docs/lab-02/schema.prisma`. Do not edit that file
 without updating this section and getting reviewer sign-off; the two must never drift apart.
 
-- **Category** (extends the existing Lab 1 model) — adds `isActive` (default `true`); no existing
+- **Category** (extends the existing Lab 1 model): adds `isActive` (default `true`); no existing
   columns changed, so the migration is non-breaking.
-- **RelatedSystem** (new) — `id`, `name` (unique), `isActive`, `createdAt`.
-- **DevRequester** (new) — `id`, `name`, `email` (unique), `isActive`, `createdAt`. Intentionally has
+- **RelatedSystem** (new): `id`, `name` (unique), `isActive`, `createdAt`.
+- **DevRequester** (new): `id`, `name`, `email` (unique), `isActive`, `createdAt`. Intentionally has
   no password/role fields so it's structurally obvious this is not real authentication.
-- **TicketNumberCounter** (new, internal only) — `year` (PK), `lastValue`. Exists solely to make
+- **TicketNumberCounter** (new, internal only): `year` (PK), `lastValue`. Exists solely to make
   Ticket Number generation race-free under concurrent requests (an atomic `UPDATE ... RETURNING`
   inside the create-ticket transaction), instead of a naive `COUNT(*) + 1` that could produce
   duplicates under concurrency.
-- **Ticket** (new) — `id`, `ticketNumber` (unique), `requesterId`/`categoryId`/`relatedSystemId` (FKs),
+- **Ticket** (new): `id`, `ticketNumber` (unique), `requesterId`/`categoryId`/`relatedSystemId` (FKs),
   `summary`, `description`, `requestedPriority` (enum `Priority`), `itPriority` (nullable `Priority`),
   `currentStatus` (enum `TicketStatus`, default `NEW`), `createdAt` (doubles as "Ticket Date"),
   `updatedAt`. `TicketStatus` declares the full lifecycle (`NEW, OPEN, IN_PROGRESS, PENDING, RESOLVED,
   CLOSED, CANCELLED`) now, even though Lab 2 only ever sets `NEW`, so Lab 3+ workflow features add
   behavior rather than requiring an enum-altering migration on live data.
-- **Attachment** (new) — `id`, `ticketId` (FK), `originalFilename`, `storedFilename` (unique, randomized
-  on disk), `mimeType`, `sizeBytes`, `uploadedAt`, `removedAt`/`removalReason` (nullable — soft removal).
+- **Attachment** (new): `id`, `ticketId` (FK), `originalFilename`, `storedFilename` (unique, randomized
+  on disk), `mimeType`, `sizeBytes`, `uploadedAt`, `removedAt`/`removalReason` (nullable - soft removal).
 
 Indexes: `Ticket(requesterId, createdAt)` composite for the default owner-scoped/sorted My Tickets
 query, plus single-column indexes on `categoryId`, `relatedSystemId`, and `currentStatus` for the
@@ -233,7 +233,7 @@ Lab 1's existing seed rather than replacing it.
 
 ## 8. API Contract
 
-Status: **LOCKED** — full endpoint-by-endpoint contract (request/response shapes, every status code,
+Status: **LOCKED** : full endpoint-by-endpoint contract (request/response shapes, every status code,
 error codes) lives in `docs/lab-02/api-spec.md`. Endpoint summary:
 
 | Method | Path | Purpose |
@@ -250,7 +250,7 @@ error codes) lives in `docs/lab-02/api-spec.md`. Endpoint summary:
 | DELETE | /api/attachments/:id | Soft-remove an owned, active Attachment (reason required) |
 
 All endpoints requiring ownership expect an `X-Dev-Requester-Id` header and enforce it server-side per
-BR-10/BR-11 — this is now locked and finalized in `api-spec.md`.
+BR-10/BR-11 - this is now locked and finalized in `api-spec.md`.
 
 ## 9. Acceptance Criteria
 
@@ -310,7 +310,7 @@ BR-10/BR-11 — this is now locked and finalized in `api-spec.md`.
 - [ ] Seed script is idempotent and produces the required minimum reference/test data
 - [ ] README documents setup, environment variables, and test-run commands, and is current
 
-**Course delivery** (see handout Section 13.2 — tracked separately, not part of product DoD)
+**Course delivery** (see handout Section 13.2: tracked separately, not part of product DoD)
 - [ ] Feature branches merged into `lab2-staging` via reviewed PRs; one release PR `lab2-staging → main`
 - [ ] `reviewer.md` and `ai-use.md` completed
 - [ ] Kanban board shows all Issues in Done before submission
@@ -320,7 +320,7 @@ BR-10/BR-11 — this is now locked and finalized in `api-spec.md`.
 Before Issue #13 (implementation) begins, the reviewer should explicitly confirm:
 
 1. Does this contract cover all the terms specified in the Lab 2 handout?
-2. Are the scope exclusions (Section 3) acceptable — nothing required has been mistakenly excluded?
+2. Are the scope exclusions (Section 3) acceptable - nothing required has been mistakenly excluded?
 3. Are any Acceptance Criteria (Section 9) in conflict with the handout's requirements, or with each
    other?
 
@@ -342,7 +342,7 @@ is locked and implementation may begin.
   (`X-Dev-Requester-Id`) rather than a body/query param on every request, to keep the pattern uniform
   across GET/POST/DELETE calls; documented fully in `api-spec.md`.
 - **Non-owner responses return 404, not 403** (BR-11) to avoid confirming resource existence to a
-  non-owner — a defensive default given this will become a security-relevant pattern once Lab 3 adds
+  non-owner - a defensive default given this will become a security-relevant pattern once Lab 3 adds
   real auth.
 - **Attachment storage** is local filesystem storage under a server-side uploads directory for Lab 2
   scope (not cloud storage), since durability across deployments is not a Lab 2 requirement.

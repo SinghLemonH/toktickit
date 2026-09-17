@@ -1,4 +1,4 @@
-# Sprint 3 REST API Specification — TokTickIT
+# Sprint 3 REST API Specification: TokTickIT
 
 > **Base Path**: `/api`  
 > **Format**: JSON (`application/json`)  

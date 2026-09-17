@@ -1,4 +1,4 @@
-# Sprint 3 Test Plan & Traceability Matrix — TokTickIT
+# Sprint 3 Test Plan & Traceability Matrix: TokTickIT
 
 > **Test Methodology**: Spec-Driven Development (Spec DD) & Test-Driven Development (TDD).
 > All automated tests are defined prior to feature implementation and must pass before release.

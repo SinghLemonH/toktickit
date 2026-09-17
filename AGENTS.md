@@ -1,10 +1,10 @@
-# AGENTS.md — TokTickIT
+# AGENTS.md: TokTickIT
 
-> **TL;DR — READ THIS FIRST BEFORE WRITING CODE OR SWITCHING CONVERSATIONS.**
+> **TL;DR: READ THIS FIRST BEFORE WRITING CODE OR SWITCHING CONVERSATIONS.**
 > You are working on **Lab 3: Users, Roles, IT Staff Ticketing, and Admin Screens**.
 > Follow Spec-Driven Development (Spec DD) and Test-Driven Development (TDD).
 > Extend Lab 1 and Lab 2; do NOT break, rewrite, or delete existing functionality.
-> **All documentation files under `docs/lab-03/` must be 100% written in formal English.**
+> **All documentation files under `docs/lab-03/` must be 100% written in formal English and must NEVER use em dashes.**
 
 ---
 
@@ -15,7 +15,7 @@ When an AI agent starts or resumes work in a new conversation, **immediately rea
 | Issue | Title | Branch | Status | Key Deliverables |
 | :--- | :--- | :--- | :--- | :--- |
 | **#29** | **Sprint 3 Engineering Contract & Continuity Guide** | `feature/29-sprint3-contract-and-agent-guide` | **Done** | `docs/lab-03/` (spec, api, ui, tests, reviewer, ai-use), `AGENTS.md` |
-| **#30** | **Database Evolution, User Migration & Seed Data** | `feature/30-db-migration-and-seed` | **In Progress** | Prisma models (`User`, `Comment`, `InternalNote`), migration script, seed |
+| **#30** | **Database Evolution, User Migration & Seed Data** | `feature/30-db-migration-and-seed` | **Done** | Prisma models (`User`, `Comment`, `InternalNote`), migration script, idempotent seed |
 | **#31** | **Authentication Engine & Mandatory Password Change** | `feature/31-auth-and-password-change` | Pending | Cookie auth API, session guards, Login UI, Change Password UI |
 | **#32** | **Requester Regression & Public Comments** | `feature/32-requester-regression-comments` | Pending | Remove DevRequester selector, Public Comments, "Problem Appears Resolved" flag |
 | **#33** | **IT Staff Ticket Queue & Operational Details** | `feature/33-staff-queue-and-ticket-operations` | Pending | Staff Queue (Search, Filter, Sort, Pagination), Claim/Reassign, IT Priority, Status, Internal Notes |
@@ -48,7 +48,7 @@ The engineering contract for Sprint 3 is located in `docs/lab-03/`:
 
 ---
 
-## Hard Boundaries — Never Cross These
+## Hard Boundaries: Never Cross These
 
 1. **Extend, Do Not Break**: Existing Lab 1 and Lab 2 functionality must continue working seamlessly. Ticket ownership from Lab 2 is migrated to the new `User` model without data loss.
 2. **Strict RBAC on the Server**: "Hiding a button is not authorization." Every protected route must strictly enforce authentication and role permissions on the Express backend with appropriate HTTP status codes (`401 Unauthorized`, `403 Forbidden`).
@@ -69,6 +69,8 @@ The engineering contract for Sprint 3 is located in `docs/lab-03/`:
    - Never disable, comment out, or skip tests to make a suite pass.
 6. **Documentation Language**:
    - **All documents under `docs/lab-03/` must be written in 100% pure English.**
+7. **No AI-Style Em Dashes**:
+   - Never use em dashes (Unicode U+2014) in any markdown documentation, commit messages, or comments. Em dashes make writing look artificially generated. Always use standard colons (`:`), hyphens (`-`), commas, or natural English phrasing instead.
 
 ---
 

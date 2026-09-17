@@ -1,4 +1,4 @@
-# Lab 1 — Test Plan and Evidence  
+# Lab 1: Test Plan and Evidence  
 
 Test files location: `server/tests/lab-01/`, `client/tests/lab-01/`
 
@@ -10,7 +10,7 @@ Test files location: `server/tests/lab-01/`, `client/tests/lab-01/`
 | UI-02   | Vitest    | Loading state changes to category list on success              |
 | UI-03   | Vitest    | API failure displays a useful error message                    |
 
-## Evidence — All Tests Passing
+## Evidence: All Tests Passing
 
 **Server (`cd server && npm test`):**
 ✓ tests/lab-01/health.test.ts (1)

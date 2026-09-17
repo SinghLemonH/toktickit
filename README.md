@@ -1,6 +1,6 @@
-# TokTickIT — IT Service Desk (Lab 1: Full-Stack Hello World + Lab 2: Requester Ticketing MVP)
+# TokTickIT: IT Service Desk (Lab 1: Full-Stack Hello World + Lab 2: Requester Ticketing MVP)
 
-CPE 334 — Sprint 1 & 2. A vertical slice proving React (Vite) → Express API → Prisma ORM →
+CPE 334 - Sprint 1 & 2. A vertical slice proving React (Vite) → Express API → Prisma ORM →
 PostgreSQL all work together, extended in Lab 2 with the Requester-facing ticketing experience.
 
 ## Prerequisites
@@ -35,7 +35,7 @@ npx prisma generate
 npx prisma db push
 ```
 
-**Lab 2 addition** — Lab 2 introduced new tables (DevRequester, RelatedSystem, Ticket, Attachment,
+**Lab 2 addition** : Lab 2 introduced new tables (DevRequester, RelatedSystem, Ticket, Attachment,
 TicketNumberCounter) plus an `isActive` column on `Category`, applied via a proper migration instead
 of `db push`:
 ```bash
@@ -43,7 +43,7 @@ npx prisma migrate dev --name lab2_ticketing_models
 ```
 
 Seed the database (Lab 1 categories + Lab 2 related systems and development requesters, all
-idempotent — safe to re-run):
+idempotent - safe to re-run):
 ```bash
 npm run seed
 ```
