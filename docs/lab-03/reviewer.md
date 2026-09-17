@@ -12,12 +12,12 @@
 | Issue / Task | Branch | Pull Request | Reviewer | Decision | Date |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Issue #29 (Sprint 3 Contract)** | `feature/29-sprint3-contract-and-agent-guide` | PR #36 | Peer Reviewer | **Approved** | 2026-09-17 |
-| **Issue #30 (DB Evolution & Seed)** | `feature/30-db-migration-and-seed` | TBD | Peer Reviewer | Pending |: |
-| **Issue #31 (Auth & Password Change)** | `feature/31-auth-and-password-change` | TBD | Peer Reviewer | Pending |: |
-| **Issue #32 (Requester & Comments)** | `feature/32-requester-regression-comments` | TBD | Peer Reviewer | Pending |: |
-| **Issue #33 (Staff Queue & Detail)** | `feature/33-staff-queue-and-ticket-operations` | TBD | Peer Reviewer | Pending |: |
-| **Issue #34 (Admin User Management)**| `feature/34-admin-user-management` | TBD | Peer Reviewer | Pending |: |
-| **Issue #35 (E2E & Release QA)** | `feature/35-e2e-artifacts-release` | TBD | Peer Reviewer | Pending |: |
+| **Issue #30 (DB Evolution & Seed)** | `feature/30-db-migration-and-seed` | PR #38 | Peer Reviewer | **Approved** | 2026-09-17 |
+| **Issue #31 (Auth & Password Change)** | `feature/31-auth-and-password-change` | TBD | Peer Reviewer | Pending | - |
+| **Issue #32 (Requester & Comments)** | `feature/32-requester-regression-comments` | TBD | Peer Reviewer | Pending | - |
+| **Issue #33 (Staff Queue & Detail)** | `feature/33-staff-queue-and-ticket-operations` | TBD | Peer Reviewer | Pending | - |
+| **Issue #34 (Admin User Management)**| `feature/34-admin-user-management` | TBD | Peer Reviewer | Pending | - |
+| **Issue #35 (E2E & Release QA)** | `feature/35-e2e-artifacts-release` | TBD | Peer Reviewer | Pending | - |
 
 ---
 
@@ -39,12 +39,31 @@
   - *Author Response*: "Acknowledged and clarified. The 46/46 passing tests refer strictly to the baseline regression test suite from Lab 1 and Lab 2, proving that introducing Sprint 3 contracts and guidelines caused zero regression. The new tests planned in `tests.md` will be implemented alongside their respective features across Issues #30 through #35 following strict TDD."
 - **Approval & Outcome**: Approved and merged into `lab3-staging` by `@WATHITx`.
 
-### PR (Pending): Issue #30: Database Evolution, User Migration & Seed Data
+### PR #38: Issue #30: Database Evolution, User Migration & Seed Data
 - **Branch**: `feature/30-db-migration-and-seed` -> `lab3-staging`
-- **Reviewer**: Peer Reviewer
+- **PR Link**: [PR #38](https://github.com/SinghLemonH/toktickit/pull/38)
+- **Reviewer**: `@WATHITx`
+- **Merge Commit**: `2563f58`
 - **Scope Covered**:
   - `server/prisma/schema.prisma`: Added `Role` enum, updated `TicketStatus`, added `User`, `Comment`, `InternalNote`, and updated `Ticket` relations.
   - `server/prisma/migrations/20260917132714_lab3_user_and_ticketing_models/`: Database migration with atomic SQL data migration copying existing `DevRequester` records into `User` with compliant initial bcrypt hashes and sequence alignment.
   - `server/prisma/seed.ts`: Fully idempotent seed script provisioning 10 users across all three roles (Requesters >= 4 active + 1 inactive, IT Staff >= 3 active + 1 inactive, Admin >= 1 active), compliant bcrypt hashes, and realistic tickets with comments and notes.
   - `server/tests/lab-03/db-seed.test.ts`: Automated test suite verifying schema invariants, role distributions, password hashing, and ticket relations (9/9 passing).
   - Regression Integrity: 100% passing across baseline tests (37/37 server tests, 18/18 client tests).
+- **Review Feedback**:
+  - *Reviewer Comment (@WATHITx)*: "this is a solid PR and looks mergeable with one quick verification item. The migration/seed story is coherent, the Lab 2 compatibility layer is thoughtful, and the schema evolution is scoped to the right issue."
+  - *Author Response*: "Hey WATHITx, thank you so much for the thorough review and the thoughtful feedback! The schema evolution and the transition layer turned out really clean, and I am glad the data migration strategy keeps our existing tickets completely intact. All thirty seven server tests and eighteen client tests are passing smoothly."
+- **Approval & Outcome**: Approved and merged into `lab3-staging` by `@WATHITx`.
+
+### PR (Pending): Issue #31: Authentication Engine & Mandatory Password Change
+- **Branch**: `feature/31-auth-and-password-change` -> `lab3-staging`
+- **Reviewer**: Peer Reviewer
+- **Scope Covered**:
+  - `server/src/auth/`: Bcrypt password complexity verification and hashing (`password.ts`), signed JWT tokens (`session.ts`), and HTTP-only cookie configuration (`cookie.ts`).
+  - `server/src/middleware/auth.ts`: Authentication parser, `requireAuth`, `requirePasswordChangeCompleted`, and `requireRole` guards.
+  - `server/src/routes/auth.ts`: Public `/login`, `/logout`, `/me`, and `/change-password` endpoints.
+  - `client/src/context/AuthContext.tsx`: Client authentication state provider with session restore and credential forwarding.
+  - `client/src/pages/Login.tsx`: Zen Green centered login card with visibility toggle, spinner, and safe failure feedback.
+  - `client/src/pages/ChangePassword.tsx`: Mandatory password change card with real-time checklist and dynamic button state.
+  - `client/src/components/AppShell.tsx`: Navigation bar updated with role-based links, user identity widget, and logout.
+  - Test suites: 49/49 server tests passing (`server/tests/lab-03/auth.api.test.ts`), 26/26 client tests passing (`client/tests/lab-03/Login.test.tsx`, `ChangePassword.test.tsx`).

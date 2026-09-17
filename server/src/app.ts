@@ -1,17 +1,30 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import fs from "node:fs";
 import path from "node:path";
 import type { Prisma } from "@prisma/client";
 import { getPrisma } from "./prisma.js";
 import { requireActiveRequester, type RequestWithRequester } from "./middleware/requireActiveRequester.js";
+import { authenticate } from "./middleware/auth.js";
+import { authRouter } from "./routes/auth.js";
 import { upload, UPLOAD_DIR, MAX_ACTIVE_ATTACHMENTS } from "./upload.js";
 import { getNextTicketNumber } from "./lib/ticketNumber.js";
 
 export const app = express();
 
-app.use(cors());
+app.use(
+  cors({
+    origin: true,
+    credentials: true,
+  })
+);
+app.use(cookieParser());
 app.use(express.json());
+app.use(authenticate);
+
+// Sprint 3 Authentication Routes
+app.use("/api/auth", authRouter);
 
 app.get("/api/health", (_req: Request, res: Response) => {
   res.status(200).json({ status: "ok", service: "TokTickIT API" });
