@@ -1,17 +1,28 @@
 import type { ReactNode } from "react";
 import { Navigate } from "react-router-dom";
 import { useRequester } from "../context/RequesterContext.js";
+import { useAuth } from "../context/AuthContext.js";
 
 export default function RouteGuard({ children }: { children: ReactNode }) {
   const { requester, isLoaded } = useRequester();
+  const { user, loading } = useAuth();
 
-  // Wait for the initial sessionStorage check before deciding — otherwise a
-  // returning user with a valid stored selection would flash-redirect.
-  if (!isLoaded) return null;
-
-  if (!requester) {
-    return <Navigate to="/select-requester" replace />;
+  if (loading || !isLoaded) {
+    return null;
   }
 
-  return <>{children}</>;
+  // Sprint 3 authenticated user handling
+  if (user) {
+    if (user.mustChangePassword) {
+      return <Navigate to="/change-password" replace />;
+    }
+    return <>{children}</>;
+  }
+
+  // Lab 2 backward compatibility fallback
+  if (requester) {
+    return <>{children}</>;
+  }
+
+  return <Navigate to="/select-requester" replace />;
 }

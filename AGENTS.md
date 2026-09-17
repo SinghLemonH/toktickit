@@ -16,7 +16,7 @@ When an AI agent starts or resumes work in a new conversation, **immediately rea
 | :--- | :--- | :--- | :--- | :--- |
 | **#29** | **Sprint 3 Engineering Contract & Continuity Guide** | `feature/29-sprint3-contract-and-agent-guide` | **Done** | `docs/lab-03/` (spec, api, ui, tests, reviewer, ai-use), `AGENTS.md` |
 | **#30** | **Database Evolution, User Migration & Seed Data** | `feature/30-db-migration-and-seed` | **Done** | Prisma models (`User`, `Comment`, `InternalNote`), migration script, idempotent seed |
-| **#31** | **Authentication Engine & Mandatory Password Change** | `feature/31-auth-and-password-change` | Pending | Cookie auth API, session guards, Login UI, Change Password UI |
+| **#31** | **Authentication Engine & Mandatory Password Change** | `feature/31-auth-and-password-change` | Pending Review | Cookie auth API, session guards, Login UI, Change Password UI |
 | **#32** | **Requester Regression & Public Comments** | `feature/32-requester-regression-comments` | Pending | Remove DevRequester selector, Public Comments, "Problem Appears Resolved" flag |
 | **#33** | **IT Staff Ticket Queue & Operational Details** | `feature/33-staff-queue-and-ticket-operations` | Pending | Staff Queue (Search, Filter, Sort, Pagination), Claim/Reassign, IT Priority, Status, Internal Notes |
 | **#34** | **Administrator User Management** | `feature/34-admin-user-management` | Pending | User table, Create/Edit user modal, Reset password, Self-deactivation & last admin safety guards |
