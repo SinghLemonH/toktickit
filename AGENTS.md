@@ -108,4 +108,23 @@ npx playwright test               # Run Playwright E2E suite
 - **Feature Branch**: `feature/<issue-number>-<short-description>`.
 - **Integration**: Every feature branch merges via Pull Request into `lab3-staging`.
 - **Release**: Only the final Sprint 3 QA release PR merges `lab3-staging` → `main`.
-- **Rule**: Never commit directly to `main` or `lab3-staging`.
+- **Rule**: Never commit directly to `main` or `lab3-staging`.
+
+---
+
+## 📋 Final Submission Structure (Course Handout: Answer Part 1 - Part 9, 60 Points Total)
+
+When generating the final PDF report for submission at the end of Sprint 3 (Issue #35), you must follow the exact structure and headings below:
+
+| Part | Title | Points | Required Submission Evidence |
+| :--- | :--- | :--- | :--- |
+| **Answer Part 1** | **Git Use with Engineering Workflow** | 10 | Commit-history evidence showing feature branches merged into `lab3-staging` and then `main`; final GitHub Project/Kanban with all Issues in `Done`; rendered `reviewer.md` with reviewer identity, PR links, comments, responses, and approvals; README and `.gitignore` evidence; repository directory structure. |
+| **Answer Part 2** | **Spec DD** | 5 | Link to and rendered `docs/lab-03/specification.md`. Show numbered requirements (FRs), business rules (BRs), authorization matrix or rules, acceptance criteria (ACs), migration decisions, and Product Definition of Done. Include evidence that the specification existed before implementation PRs. |
+| **Answer Part 3** | **Test DD and Traceability** | 10 | Link to and rendered `docs/lab-03/tests.md`. Include planned tests, AC traceability, actual test-file paths, and final status. Include complete unit, API/integration, UI, authorization, regression, and E2E passing test output from `main`. |
+| **Answer Part 4** | **AI Use with Reflection** | 5 | Rendered `docs/lab-03/ai-use.md` naming the LLM used and showing 6-10 selected key prompts (senior prompt engineering). Provide a brief "My Reflection" on specification-agent and coding-agent use. |
+| **Answer Part 5** | **Working Login and Password Change UI** | 5 | Demonstrate valid and invalid login, inactive-account handling, busy and safe failure feedback, mandatory first-password change, authenticated user/role display, logout, and direct access blocked after logout. |
+| **Answer Part 6** | **Working IT Staff Ticket Queue UI** | 5 | Demonstrate realistic queue data, search, filters, sorting, pagination, assigned/unassigned ownership, status and priority badges, open-detail action, empty/no-results/failure feedback, and responsive behavior. |
+| **Answer Part 7** | **Working IT Staff Ticket Detail UI** | 10 | Demonstrate claim/reassign, IT Priority, permitted status changes, Public Comments, Internal Notes, Attachment continuity, Requester resolution indication, role restrictions, validation, and safe failure behavior. Include direct API authorization evidence. |
+| **Answer Part 8** | **Working Administrator User Management UI** | 5 | Demonstrate minimalist User Management screen: user list (Name, Email, Role, Status, Edit), search by name or email, optional role filter, create user with initial password, duplicate-email & invalid validation, edit user, set new initial password & required change at next login, prevention of self-deactivation & last active admin removal, forbidden access for non-admins, Zen Green presentation. |
+| **Answer Part 9** | **Zen Green UI and Responsive Evidence** | 5 | Rendered `ui-spec.md` plus desktop, tablet, and mobile screenshots for all major Lab 3 screens. Include completed visual checklist for design consistency, role navigation, badges, editable/read-only fields, validation placement, focus, clipping, overlap, and horizontal overflow. |
+
