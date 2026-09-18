@@ -13,7 +13,7 @@
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Issue #29 (Sprint 3 Contract)** | `feature/29-sprint3-contract-and-agent-guide` | PR #36 | Peer Reviewer | **Approved** | 2026-09-17 |
 | **Issue #30 (DB Evolution & Seed)** | `feature/30-db-migration-and-seed` | PR #38 | Peer Reviewer | **Approved** | 2026-09-17 |
-| **Issue #31 (Auth & Password Change)** | `feature/31-auth-and-password-change` | TBD | Peer Reviewer | Pending | - |
+| **Issue #31 (Auth & Password Change)** | `feature/31-auth-and-password-change` | PR #39 | `@WATHITx` | **Approved** | 2026-09-18 |
 | **Issue #32 (Requester & Comments)** | `feature/32-requester-regression-comments` | TBD | Peer Reviewer | Pending | - |
 | **Issue #33 (Staff Queue & Detail)** | `feature/33-staff-queue-and-ticket-operations` | TBD | Peer Reviewer | Pending | - |
 | **Issue #34 (Admin User Management)**| `feature/34-admin-user-management` | TBD | Peer Reviewer | Pending | - |
@@ -55,9 +55,11 @@
   - *Author Response*: "Hey WATHITx, thank you so much for the thorough review and the thoughtful feedback! The schema evolution and the transition layer turned out really clean, and I am glad the data migration strategy keeps our existing tickets completely intact. All thirty seven server tests and eighteen client tests are passing smoothly."
 - **Approval & Outcome**: Approved and merged into `lab3-staging` by `@WATHITx`.
 
-### PR (Pending): Issue #31: Authentication Engine & Mandatory Password Change
+### PR #39: Issue #31: Authentication Engine & Mandatory Password Change
 - **Branch**: `feature/31-auth-and-password-change` -> `lab3-staging`
-- **Reviewer**: Peer Reviewer
+- **PR Link**: [PR #39](https://github.com/SinghLemonH/toktickit/pull/39)
+- **Reviewer**: `@WATHITx`
+- **Merge Commit**: `885fbdc`
 - **Scope Covered**:
   - `server/src/auth/`: Bcrypt password complexity verification and hashing (`password.ts`), signed JWT tokens (`session.ts`), and HTTP-only cookie configuration (`cookie.ts`).
   - `server/src/middleware/auth.ts`: Authentication parser, `requireAuth`, `requirePasswordChangeCompleted`, and `requireRole` guards.
@@ -67,3 +69,18 @@
   - `client/src/pages/ChangePassword.tsx`: Mandatory password change card with real-time checklist and dynamic button state.
   - `client/src/components/AppShell.tsx`: Navigation bar updated with role-based links, user identity widget, and logout.
   - Test suites: 49/49 server tests passing (`server/tests/lab-03/auth.api.test.ts`), 26/26 client tests passing (`client/tests/lab-03/Login.test.tsx`, `ChangePassword.test.tsx`).
+- **Review Feedback**:
+  - *Reviewer Comment (@WATHITx)*: "This PR adds the auth layer for TokTickIT: cookie-based login/logout, session validation, password-change enforcement, and the login/change-password UI. The idea is solid and the scope is well-contained. My overall assessment: I can merge but you need to be careful cause I detect some Critical but I think it's in your plan so I will merge it and wait for the next issue. Critical issue 1: unauthenticated users still fall through to the old requester-selection flow instead of the login flow. Critical issue 2: JWT secret falls back to a hardcoded value in source code."
+  - *Author Response*: "Thank you WATHITx for the sharp and constructive review. Both identified items are exactly right and scheduled for the next immediate milestone. Critical item 1 (retiring the temporary Lab 2 /select-requester route and making /login the canonical unauthenticated entrypoint) is the explicit objective of Issue #32 (Requester Regression & Public Comments). Critical item 2 (enforcing environment variable validation for JWT_SECRET without hardcoded fallback in production) is being addressed immediately in Issue #32 as well. Merging into lab3-staging with sincere appreciation."
+- **Approval & Outcome**: Approved and merged into `lab3-staging` by `@WATHITx`.
+
+### PR (Pending): Issue #32: Requester Regression & Public Comments
+- **Branch**: `feature/32-requester-regression-comments` -> `lab3-staging`
+- **Reviewer**: Peer Reviewer
+- **Scope Covered**:
+  - Retire Lab 2 `/select-requester` route and selector UI (FR-08, BR-04).
+  - Canonical routing: unauthenticated users automatically redirect to `/login` (FR-01, FR-08).
+  - Public comments: Requesters and IT Staff can submit public comments on tickets (FR-09, FR-10, BR-05, BR-06).
+  - "Problem Appears Resolved" checkbox flag for Requesters when posting a comment (FR-11, BR-07).
+  - Regression integrity: Ticket creation, My Tickets table, and detail view continue functioning seamlessly with real authenticated Requester session (FR-07).
+

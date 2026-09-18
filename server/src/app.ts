@@ -8,6 +8,7 @@ import { getPrisma } from "./prisma.js";
 import { requireActiveRequester, type RequestWithRequester } from "./middleware/requireActiveRequester.js";
 import { authenticate } from "./middleware/auth.js";
 import { authRouter } from "./routes/auth.js";
+import { commentsRouter } from "./routes/comments.js";
 import { upload, UPLOAD_DIR, MAX_ACTIVE_ATTACHMENTS } from "./upload.js";
 import { getNextTicketNumber } from "./lib/ticketNumber.js";
 
@@ -25,6 +26,7 @@ app.use(authenticate);
 
 // Sprint 3 Authentication Routes
 app.use("/api/auth", authRouter);
+app.use(commentsRouter);
 
 app.get("/api/health", (_req: Request, res: Response) => {
   res.status(200).json({ status: "ok", service: "TokTickIT API" });
@@ -291,11 +293,16 @@ app.get(
 
     try {
       const prisma = getPrisma();
+      const isStaffOrAdmin =
+        req.user && (req.user.role === "IT_STAFF" || req.user.role === "ADMINISTRATOR");
+
       const ticket = await prisma.ticket.findFirst({
-        where: {
-          id,
-          requesterId: req.requester!.id, // BR-10, BR-11, BR-38: ownership check (404 if not owned)
-        },
+        where: isStaffOrAdmin
+          ? { id }
+          : {
+              id,
+              requesterId: req.requester!.id, // BR-10, BR-11, BR-38: ownership check (404 if not owned)
+            },
         include: {
           category: { select: { name: true } },
           relatedSystem: { select: { name: true } },
@@ -331,6 +338,7 @@ app.get(
         requestedPriority: ticket.requestedPriority,
         itPriority: ticket.itPriority,
         currentStatus: ticket.currentStatus,
+        isProblemResolvedIndicated: ticket.isProblemResolvedIndicated,
         attachments: ticket.attachments,
       });
     } catch (err) {

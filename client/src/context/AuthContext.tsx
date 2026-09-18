@@ -24,8 +24,10 @@ export interface AuthContextType {
     newPassword: string
   ) => Promise<{ success: boolean; error?: string; details?: string[] }>;
   refreshUser: () => Promise<void>;
+  isConfigured: boolean;
 }
 
+const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -34,7 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function refreshUser() {
     try {
-      const res = await fetch("/api/auth/me", {
+      const res = await fetch(`${API_URL}/api/auth/me`, {
         credentials: "include",
       });
       if (res.ok) {
@@ -56,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function login(email: string, password: string) {
     try {
-      const res = await fetch("/api/auth/login", {
+      const res = await fetch(`${API_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -83,7 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function logout() {
     try {
-      await fetch("/api/auth/logout", {
+      await fetch(`${API_URL}/api/auth/logout`, {
         method: "POST",
         credentials: "include",
       });
@@ -96,7 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function changePassword(currentPassword: string, newPassword: string) {
     try {
-      const res = await fetch("/api/auth/change-password", {
+      const res = await fetch(`${API_URL}/api/auth/change-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -131,6 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         changePassword,
         refreshUser,
+        isConfigured: true,
       }}
     >
       {children}
@@ -141,6 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 const defaultAuthValue: AuthContextType = {
   user: null,
   loading: false,
+  isConfigured: false,
   login: async () => ({ success: false, error: "Auth provider missing" }),
   logout: async () => {},
   changePassword: async () => ({ success: false, error: "Auth provider missing" }),
