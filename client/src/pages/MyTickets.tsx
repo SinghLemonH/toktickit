@@ -17,7 +17,7 @@ import { useRequester } from "../context/RequesterContext.js";
 type LoadState = "loading" | "loaded" | "error";
 
 function PriorityBadge({ value }: { value: string | null }) {
-  if (!value) return <span className="text-muted small">—</span>;
+  if (!value) return <span className="text-muted small">None</span>;
   if (value === "HIGH")
     return (
       <span className="zg-badge zg-badge-high">
