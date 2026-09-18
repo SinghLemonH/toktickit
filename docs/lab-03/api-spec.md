@@ -154,7 +154,7 @@ Lists tickets owned by the authenticated Requester (`ticket.requesterId == req.u
 
 - **Access**: `REQUESTER`, `ADMINISTRATOR`
 - **Query Parameters**:
-  - `status`: Optional filter (`NEW`, `OPEN`, `IN_PROGRESS`, `WAITING_FOR_REQUESTER`, `RESOLVED`, `CLOSED`, `CANCELLED`).
+  - `status`: Optional filter (`NEW`, `OPEN`, `IN_PROGRESS`, `WAITING_FOR_REQUESTER`, `RESOLVED`, `CLOSED`, `REOPENED`, `CANCELLED`).
   - `search`: Optional string matching ticketNumber or summary.
   - `page`: Integer (default: 1).
   - `pageSize`: Integer (default: 10).

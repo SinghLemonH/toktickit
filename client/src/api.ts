@@ -194,6 +194,8 @@ export interface TicketDetail {
   itPriority: string | null;
   currentStatus: string;
   isProblemResolvedIndicated: boolean;
+  assignedToId?: number | null;
+  assignedTo?: { id: number; name: string; email?: string; role?: string } | null;
   attachments: AttachmentMetadata[];
 }
 
@@ -340,5 +342,164 @@ export async function indicateProblemResolved(
     throw new Error(data.error?.message || "Failed to mark problem as resolved");
   }
 
+  return res.json();
+}
+
+// ----------------------------------------------------------------------------
+// SPRINT 3: IT STAFF TICKET QUEUE & OPERATIONS
+// ----------------------------------------------------------------------------
+
+export interface StaffQueueTicket {
+  id: number;
+  ticketNumber: string;
+  createdAt: string;
+  updatedAt?: string;
+  summary: string;
+  category: { id: number; name: string };
+  requester: { id: number; name: string; email?: string };
+  assignedTo: { id: number; name: string; email?: string; role?: string } | null;
+  requestedPriority: "LOW" | "MEDIUM" | "HIGH";
+  itPriority: string | null;
+  currentStatus: string;
+  isProblemResolvedIndicated: boolean;
+}
+
+export interface StaffQueueResponse {
+  tickets: StaffQueueTicket[];
+  pagination: {
+    totalItems: number;
+    totalPages: number;
+    currentPage: number;
+    pageSize: number;
+  };
+}
+
+export interface StaffQueueParams {
+  search?: string;
+  status?: string;
+  categoryId?: number;
+  requestedPriority?: string;
+  itPriority?: string;
+  assignedTo?: string;
+  sortBy?: string;
+  sortOrder?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface StaffUser {
+  id: number;
+  name: string;
+  email: string;
+  role: "IT_STAFF" | "ADMINISTRATOR";
+  isActive: boolean;
+}
+
+export interface InternalNote {
+  id: number;
+  ticketId: number;
+  content: string;
+  createdAt: string;
+  author: {
+    id: number;
+    name: string;
+    role: string;
+  };
+}
+
+export async function getStaffTickets(params?: StaffQueueParams): Promise<StaffQueueResponse> {
+  const q = new URLSearchParams();
+  if (params) {
+    for (const [key, value] of Object.entries(params)) {
+      if (value !== undefined && value !== "") {
+        q.set(key, String(value));
+      }
+    }
+  }
+  const res = await fetch(`${API_URL}/api/staff/tickets?${q.toString()}`, {
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("Unable to load staff ticket queue");
+  return res.json();
+}
+
+export async function getStaffUsers(): Promise<StaffUser[]> {
+  const res = await fetch(`${API_URL}/api/staff/users`, {
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("Unable to load staff users");
+  return res.json();
+}
+
+export async function assignStaffTicket(
+  ticketId: number,
+  assignedToId: number | null
+): Promise<TicketDetail> {
+  const res = await fetch(`${API_URL}/api/staff/tickets/${ticketId}/assign`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ assignedToId }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error?.message || "Failed to assign ticket");
+  }
+  return res.json();
+}
+
+export async function updateTicketItPriority(
+  ticketId: number,
+  itPriority: string
+): Promise<TicketDetail> {
+  const res = await fetch(`${API_URL}/api/staff/tickets/${ticketId}/priority`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ itPriority }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error?.message || "Failed to update IT Priority");
+  }
+  return res.json();
+}
+
+export async function updateTicketStatus(
+  ticketId: number,
+  status: string
+): Promise<TicketDetail> {
+  const res = await fetch(`${API_URL}/api/staff/tickets/${ticketId}/status`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ status }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error?.message || "Failed to update ticket status");
+  }
+  return res.json();
+}
+
+export async function getInternalNotes(ticketId: number): Promise<InternalNote[]> {
+  const res = await fetch(`${API_URL}/api/staff/tickets/${ticketId}/notes`, {
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("Unable to load internal notes");
+  return res.json();
+}
+
+export async function addInternalNote(ticketId: number, content: string): Promise<InternalNote> {
+  const res = await fetch(`${API_URL}/api/staff/tickets/${ticketId}/notes`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ content }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error?.message || "Failed to add internal note");
+  }
   return res.json();
 }

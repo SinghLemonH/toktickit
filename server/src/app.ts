@@ -9,6 +9,7 @@ import { requireActiveRequester, type RequestWithRequester } from "./middleware/
 import { authenticate } from "./middleware/auth.js";
 import { authRouter } from "./routes/auth.js";
 import { commentsRouter } from "./routes/comments.js";
+import { staffTicketsRouter } from "./routes/staffTickets.js";
 import { upload, UPLOAD_DIR, MAX_ACTIVE_ATTACHMENTS } from "./upload.js";
 import { getNextTicketNumber } from "./lib/ticketNumber.js";
 
@@ -24,9 +25,10 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(authenticate);
 
-// Sprint 3 Authentication Routes
+// Sprint 3 Authentication, Comments & Staff Routes
 app.use("/api/auth", authRouter);
 app.use(commentsRouter);
+app.use(staffTicketsRouter);
 
 app.get("/api/health", (_req: Request, res: Response) => {
   res.status(200).json({ status: "ok", service: "TokTickIT API" });

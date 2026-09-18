@@ -1,4 +1,4 @@
-﻿import type { Request, Response, NextFunction } from "express";
+import type { Request, Response, NextFunction } from "express";
 import { getPrisma } from "../prisma.js";
 import { verifySessionToken } from "../auth/session.js";
 import { SESSION_COOKIE_NAME } from "../auth/cookie.js";
@@ -89,7 +89,8 @@ export function requirePasswordChangeCompleted(
   next();
 }
 
-export function requireRole(...allowedRoles: string[]) {
+export function requireRole(...allowedRoles: (string | string[])[]) {
+  const roles = allowedRoles.flat();
   return (req: RequestWithUser, res: Response, next: NextFunction): void => {
     if (!req.user) {
       res.status(401).json({
@@ -101,7 +102,7 @@ export function requireRole(...allowedRoles: string[]) {
       return;
     }
 
-    if (!allowedRoles.includes(req.user.role)) {
+    if (!roles.includes(req.user.role)) {
       res.status(403).json({
         error: {
           code: "FORBIDDEN",

@@ -130,7 +130,7 @@ Deliver a secure, role-based multi-user foundation for TokTickIT supporting thre
 - **BR-13**: Comment and note content cannot be empty or solely whitespace. Content length must be between 1 and 2,000 characters.
 
 ### Ticket Status Transition Rules
-- **BR-14**: Permitted ticket statuses are: `NEW`, `OPEN`, `IN_PROGRESS`, `WAITING_FOR_REQUESTER`, `RESOLVED`, `CLOSED`, `REOPENED`, `CANCELLED`.
+- **BR-14**: Permitted operational ticket statuses for Sprint 3 workflows are: `NEW`, `OPEN`, `IN_PROGRESS`, `WAITING_FOR_REQUESTER`, `RESOLVED`, `CLOSED`, `REOPENED`, and `CANCELLED`. The legacy `PENDING` status value from the Lab 2 PostgreSQL database schema is retained in the database enum exclusively for migration continuity and backward compatibility, but cannot be selected in Sprint 3 operational status transitions.
 - **BR-15**: Allowed Status Transitions by Role:
   - Initial status is always `NEW`.
   - When an IT Staff claims or begins work on a `NEW` ticket, it transitions to `OPEN` or `IN_PROGRESS`.
@@ -291,7 +291,7 @@ model InternalNote {
 ### 7.2. Lab 2 Migration Strategy
 - Migration evolves `DevRequester` records directly into the `User` table, mapping `DevRequester.id` to `User.id` and setting `role = REQUESTER`, `mustChangePassword = true`, and a known default initial password hash.
 - All foreign keys on `Ticket.requesterId` point cleanly to `User.id`.
-- Ticket status enum adds `WAITING_FOR_REQUESTER` and `REOPENED` seamlessly.
+- Ticket status enum adds `WAITING_FOR_REQUESTER` and `REOPENED` seamlessly while preserving the legacy `PENDING` value from Lab 2 for non-destructive database backward compatibility. Operational transitions in Sprint 3 operate strictly on the 8 active workflow statuses defined in BR-14.
 
 ### 7.3. Idempotent Seed Data
 - Minimum active Requesters: 4 (e.g., Jennifer Anderson, David Lee, Emily Davis, Alex Thompson) + 1 inactive Requester (Kevin Patel).
