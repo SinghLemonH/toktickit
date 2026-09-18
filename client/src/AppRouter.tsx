@@ -7,6 +7,8 @@ import ChangePassword from "./pages/ChangePassword.js";
 import MyTickets from "./pages/MyTickets.js";
 import CreateTicket from "./pages/CreateTicket.js";
 import TicketDetail from "./pages/TicketDetail.js";
+import StaffTicketQueue from "./pages/StaffTicketQueue.js";
+import StaffTicketDetail from "./pages/StaffTicketDetail.js";
 import RouteGuard from "./components/RouteGuard.js";
 import AppShell from "./components/AppShell.js";
 import App from "./App.js";
@@ -27,6 +29,7 @@ export default function AppRouter() {
             {/* Lab 1 Health Check Demo */}
             <Route path="/system-status" element={<App />} />
 
+            {/* Requester Routes */}
             <Route
               path="/tickets"
               element={
@@ -55,6 +58,29 @@ export default function AppRouter() {
                 <RouteGuard>
                   <AppShell>
                     <TicketDetail />
+                  </AppShell>
+                </RouteGuard>
+              }
+            />
+
+            {/* IT Staff & Admin Routes */}
+            <Route
+              path="/staff/queue"
+              element={
+                <RouteGuard allowedRoles={["IT_STAFF", "ADMINISTRATOR"]}>
+                  <AppShell>
+                    <StaffTicketQueue />
+                  </AppShell>
+                </RouteGuard>
+              }
+            />
+
+            <Route
+              path="/staff/tickets/:id"
+              element={
+                <RouteGuard allowedRoles={["IT_STAFF", "ADMINISTRATOR"]}>
+                  <AppShell>
+                    <StaffTicketDetail />
                   </AppShell>
                 </RouteGuard>
               }

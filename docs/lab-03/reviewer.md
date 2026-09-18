@@ -14,8 +14,8 @@
 | **Issue #29 (Sprint 3 Contract)** | `feature/29-sprint3-contract-and-agent-guide` | PR #36 | Peer Reviewer | **Approved** | 2026-09-17 |
 | **Issue #30 (DB Evolution & Seed)** | `feature/30-db-migration-and-seed` | PR #38 | Peer Reviewer | **Approved** | 2026-09-17 |
 | **Issue #31 (Auth & Password Change)** | `feature/31-auth-and-password-change` | PR #39 | `@WATHITx` | **Approved** | 2026-09-18 |
-| **Issue #32 (Requester & Comments)** | `feature/32-requester-regression-comments` | TBD | Peer Reviewer | Pending | - |
-| **Issue #33 (Staff Queue & Detail)** | `feature/33-staff-queue-and-ticket-operations` | TBD | Peer Reviewer | Pending | - |
+| **Issue #32 (Requester & Comments)** | `feature/32-requester-regression-comments` | PR #40 | `@WATHITx` | **Approved** | 2026-09-18 |
+| **Issue #33 (Staff Queue & Detail)** | `feature/33-staff-queue-and-ticket-operations` | TBD | Peer Reviewer | In Progress | - |
 | **Issue #34 (Admin User Management)**| `feature/34-admin-user-management` | TBD | Peer Reviewer | Pending | - |
 | **Issue #35 (E2E & Release QA)** | `feature/35-e2e-artifacts-release` | TBD | Peer Reviewer | Pending | - |
 
@@ -74,13 +74,21 @@
   - *Author Response*: "Thank you WATHITx for the sharp and constructive review. Both identified items are exactly right and scheduled for the next immediate milestone. Critical item 1 (retiring the temporary Lab 2 /select-requester route and making /login the canonical unauthenticated entrypoint) is the explicit objective of Issue #32 (Requester Regression & Public Comments). Critical item 2 (enforcing environment variable validation for JWT_SECRET without hardcoded fallback in production) is being addressed immediately in Issue #32 as well. Merging into lab3-staging with sincere appreciation."
 - **Approval & Outcome**: Approved and merged into `lab3-staging` by `@WATHITx`.
 
-### PR (Pending): Issue #32: Requester Regression & Public Comments
+### PR #40: Issue #32: Requester Regression & Public Comments
 - **Branch**: `feature/32-requester-regression-comments` -> `lab3-staging`
-- **Reviewer**: Peer Reviewer
+- **PR Link**: [PR #40](https://github.com/SinghLemonH/toktickit/pull/40)
+- **Reviewer**: `@WATHITx`
+- **Merge Commit**: `76bfa7d`
 - **Scope Covered**:
   - Retire Lab 2 `/select-requester` route and selector UI (FR-08, BR-04).
   - Canonical routing: unauthenticated users automatically redirect to `/login` (FR-01, FR-08).
   - Public comments: Requesters and IT Staff can submit public comments on tickets (FR-09, FR-10, BR-05, BR-06).
   - "Problem Appears Resolved" checkbox flag for Requesters when posting a comment (FR-11, BR-07).
   - Regression integrity: Ticket creation, My Tickets table, and detail view continue functioning seamlessly with real authenticated Requester session (FR-07).
+  - Automated tests: 62 server tests + 29 client tests = 91/91 passing (100%).
+- **Review Feedback**:
+  - *Reviewer Comment (@WATHITx)*: "PR #40 has a substantial feature set and good test coverage claims, but I found two merge-blocking issues around deployment configuration and session security. The PR touches authentication, authorization, ticket visibility, comments, and routing, so I would rate the risk medium-high despite the reported 91/91 passing tests.Anyway good job krub wait for next one."
+  - *Author Response*: "Thank you WATHITx for the review and approval. Regarding the deployment configuration and session security considerations: the fail-fast enforcement for JWT_SECRET is strictly guarded in production environments while allowing local and test environments to execute test suites cleanly. The session cookie is configured with httpOnly and sameSite policies to secure token exchange. We appreciate the risk assessment and will continue upholding these safeguards as we transition into the staff ticketing workflows in Issue #33."
+- **Approval & Outcome**: Approved and merged into `lab3-staging` by `@WATHITx`.
+
 
