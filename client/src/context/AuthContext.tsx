@@ -24,6 +24,7 @@ export interface AuthContextType {
     newPassword: string
   ) => Promise<{ success: boolean; error?: string; details?: string[] }>;
   refreshUser: () => Promise<void>;
+  isConfigured: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -131,6 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         changePassword,
         refreshUser,
+        isConfigured: true,
       }}
     >
       {children}
@@ -141,6 +143,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 const defaultAuthValue: AuthContextType = {
   user: null,
   loading: false,
+  isConfigured: false,
   login: async () => ({ success: false, error: "Auth provider missing" }),
   logout: async () => {},
   changePassword: async () => ({ success: false, error: "Auth provider missing" }),

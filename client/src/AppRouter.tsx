@@ -1,4 +1,4 @@
-﻿import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { RequesterProvider } from "./context/RequesterContext.js";
 import { AuthProvider } from "./context/AuthContext.js";
 import RequesterSelection from "./pages/RequesterSelection.js";
@@ -21,8 +21,8 @@ export default function AppRouter() {
             <Route path="/login" element={<Login />} />
             <Route path="/change-password" element={<ChangePassword />} />
 
-            {/* Lab 2 Requester Selection fallback */}
-            <Route path="/select-requester" element={<RequesterSelection />} />
+            {/* Lab 2 Requester Selection retired: redirect to /login (FR-08) */}
+            <Route path="/select-requester" element={<Navigate to="/login" replace />} />
 
             {/* Lab 1 Health Check Demo */}
             <Route path="/system-status" element={<App />} />

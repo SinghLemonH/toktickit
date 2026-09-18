@@ -103,7 +103,8 @@ export async function getMyTickets(
     if (value !== undefined && value !== "") params.set(key, String(value));
   }
   const res = await fetch(`${API_URL}/api/tickets?${params.toString()}`, {
-    headers: { "X-Dev-Requester-Id": String(requesterId) },
+    headers: requesterId ? { "X-Dev-Requester-Id": String(requesterId) } : {},
+    credentials: "include",
   });
   if (!res.ok) throw new Error("Unable to load tickets");
   return res.json();
@@ -152,7 +153,8 @@ export async function createTicket(
 
   const res = await fetch(`${API_URL}/api/tickets`, {
     method: "POST",
-    headers: { "X-Dev-Requester-Id": String(requesterId) },
+    headers: requesterId ? { "X-Dev-Requester-Id": String(requesterId) } : {},
+    credentials: "include",
     body: formData,
   });
 
@@ -191,6 +193,7 @@ export interface TicketDetail {
   requestedPriority: "LOW" | "MEDIUM" | "HIGH";
   itPriority: string | null;
   currentStatus: string;
+  isProblemResolvedIndicated: boolean;
   attachments: AttachmentMetadata[];
 }
 
@@ -199,7 +202,8 @@ export async function getTicketDetail(
   ticketId: number
 ): Promise<TicketDetail> {
   const res = await fetch(`${API_URL}/api/tickets/${ticketId}`, {
-    headers: { "X-Dev-Requester-Id": String(requesterId) },
+    headers: requesterId ? { "X-Dev-Requester-Id": String(requesterId) } : {},
+    credentials: "include",
   });
   if (res.status === 404) {
     throw new Error("NOT_FOUND");
@@ -220,7 +224,8 @@ export async function uploadAttachment(
 
   const res = await fetch(`${API_URL}/api/tickets/${ticketId}/attachments`, {
     method: "POST",
-    headers: { "X-Dev-Requester-Id": String(requesterId) },
+    headers: requesterId ? { "X-Dev-Requester-Id": String(requesterId) } : {},
+    credentials: "include",
     body: formData,
   });
 
@@ -238,7 +243,8 @@ export async function downloadAttachment(
   filename: string
 ): Promise<void> {
   const res = await fetch(`${API_URL}/api/attachments/${attachmentId}/download`, {
-    headers: { "X-Dev-Requester-Id": String(requesterId) },
+    headers: requesterId ? { "X-Dev-Requester-Id": String(requesterId) } : {},
+    credentials: "include",
   });
   if (!res.ok) throw new Error("Unable to download attachment");
   const blob = await res.blob();
@@ -260,15 +266,78 @@ export async function removeAttachment(
   const res = await fetch(`${API_URL}/api/attachments/${attachmentId}`, {
     method: "DELETE",
     headers: {
-      "X-Dev-Requester-Id": String(requesterId),
+      ...(requesterId ? { "X-Dev-Requester-Id": String(requesterId) } : {}),
       "Content-Type": "application/json",
     },
+    credentials: "include",
     body: JSON.stringify({ reason }),
   });
 
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
     throw new Error(data.error?.message || "Unable to remove attachment");
+  }
+
+  return res.json();
+}
+
+// ----------------------------------------------------------------------------
+// SPRINT 3: PUBLIC COMMENTS & RESOLUTION INDICATION (ISSUE #32)
+// ----------------------------------------------------------------------------
+
+export interface CommentAuthor {
+  id: number;
+  name: string;
+  role: "REQUESTER" | "IT_STAFF" | "ADMINISTRATOR";
+}
+
+export interface PublicComment {
+  id: number;
+  ticketId: number;
+  content: string;
+  createdAt: string;
+  author: CommentAuthor;
+}
+
+export async function getPublicComments(ticketId: number): Promise<PublicComment[]> {
+  const res = await fetch(`${API_URL}/api/tickets/${ticketId}/comments`, {
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("Unable to load comments");
+  return res.json();
+}
+
+export async function postPublicComment(
+  ticketId: number,
+  content: string
+): Promise<PublicComment> {
+  const res = await fetch(`${API_URL}/api/tickets/${ticketId}/comments`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ content }),
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error?.message || "Failed to post comment");
+  }
+
+  return res.json();
+}
+
+export async function indicateProblemResolved(
+  ticketId: number
+): Promise<{ id: number; ticketNumber: string; isProblemResolvedIndicated: boolean }> {
+  const res = await fetch(`${API_URL}/api/tickets/${ticketId}/resolve-indicated`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error?.message || "Failed to mark problem as resolved");
   }
 
   return res.json();
