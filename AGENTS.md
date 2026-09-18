@@ -18,8 +18,8 @@ When an AI agent starts or resumes work in a new conversation, **immediately rea
 | **#30** | **Database Evolution, User Migration & Seed Data** | `feature/30-db-migration-and-seed` | **Done** | Prisma models (`User`, `Comment`, `InternalNote`), migration script, idempotent seed |
 | **#31** | **Authentication Engine & Mandatory Password Change** | `feature/31-auth-and-password-change` | **Done** | Cookie auth API, session guards, Login UI, Change Password UI |
 | **#32** | **Requester Regression & Public Comments** | `feature/32-requester-regression-comments` | **Done** | Remove DevRequester selector, Public Comments, "Problem Appears Resolved" flag |
-| **#33** | **IT Staff Ticket Queue & Operational Details** | `feature/33-staff-queue-and-ticket-operations` | In Progress | Staff Queue (Search, Filter, Sort, Pagination), Claim/Reassign, IT Priority, Status, Internal Notes |
-| **#34** | **Administrator User Management** | `feature/34-admin-user-management` | Pending | User table, Create/Edit user modal, Reset password, Self-deactivation & last admin safety guards |
+| **#33** | **IT Staff Ticket Queue & Operational Details** | `feature/33-staff-queue-and-ticket-operations` | **Done** | Staff Queue (Search, Filter, Sort, Pagination), Claim/Reassign, IT Priority, Status, Internal Notes |
+| **#34** | **Administrator User Management** | `feature/34-admin-user-management` | Pending Review (PR #42) | User table, Create/Edit user modal, Reset password, Self-deactivation & last admin safety guards |
 | **#35** | **E2E Integration, Visual Artifacts & QA Release** | `feature/35-e2e-artifacts-release` | Pending | Playwright tests, UI screenshots (Desktop/Tablet/Mobile), `reviewer.md`, PR to main |
 
 ### Resume Checklist for Any New Session:

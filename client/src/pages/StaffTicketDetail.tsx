@@ -40,6 +40,42 @@ const ALLOWED_STATUS_TRANSITIONS: Record<string, string[]> = {
   CANCELLED: [],
 };
 
+function getPriorityBadgeClass(p: string | null) {
+  if (p === "HIGH") return "bg-danger text-white";
+  if (p === "MEDIUM") return "bg-warning text-dark";
+  if (p === "LOW") return "bg-success text-white";
+  return "bg-secondary text-white";
+}
+
+function getStatusBadgeClass(s: string) {
+  switch (s) {
+    case "NEW":
+      return "bg-primary text-white";
+    case "OPEN":
+      return "bg-info text-dark";
+    case "IN_PROGRESS":
+      return "bg-warning text-dark";
+    case "WAITING_FOR_REQUESTER":
+      return "bg-secondary text-white";
+    case "RESOLVED":
+      return "bg-success text-white";
+    case "CLOSED":
+      return "bg-dark text-white";
+    case "REOPENED":
+      return "bg-danger text-white";
+    case "CANCELLED":
+      return "bg-secondary text-light";
+    default:
+      return "bg-secondary text-white";
+  }
+}
+
+function getRoleBadgeClass(role: string) {
+  if (role === "ADMINISTRATOR") return "bg-success text-white";
+  if (role === "IT_STAFF") return "bg-primary text-white";
+  return "bg-secondary text-white";
+}
+
 export default function StaffTicketDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -110,13 +146,12 @@ export default function StaffTicketDetail() {
     loadTicketData();
   }, [loadTicketData]);
 
-  // Operations: Claim Ticket
+  // Operations: Quick Claim Ticket
   async function handleClaimTicket() {
     if (!ticket || !user) return;
     try {
-      const updated = await assignStaffTicket(ticket.id, user.id);
-      setTicket(updated);
-      setSelectedAssignee(String(user.id));
+      await assignStaffTicket(ticket.id, user.id);
+      await loadTicketData();
       showSuccess("You have claimed this ticket.");
     } catch (err: any) {
       setError(err.message || "Failed to claim ticket.");
@@ -128,8 +163,8 @@ export default function StaffTicketDetail() {
     if (!ticket) return;
     const targetId = selectedAssignee ? Number(selectedAssignee) : null;
     try {
-      const updated = await assignStaffTicket(ticket.id, targetId);
-      setTicket(updated);
+      await assignStaffTicket(ticket.id, targetId);
+      await loadTicketData();
       showSuccess(targetId ? "Ticket reassigned successfully." : "Ticket unassigned.");
     } catch (err: any) {
       setError(err.message || "Failed to reassign ticket.");
@@ -140,8 +175,8 @@ export default function StaffTicketDetail() {
   async function handlePriorityChange() {
     if (!ticket) return;
     try {
-      const updated = await updateTicketItPriority(ticket.id, selectedPriority);
-      setTicket(updated);
+      await updateTicketItPriority(ticket.id, selectedPriority);
+      await loadTicketData();
       showSuccess(`IT Priority updated to ${selectedPriority}.`);
     } catch (err: any) {
       setError(err.message || "Failed to update IT Priority.");
@@ -152,8 +187,8 @@ export default function StaffTicketDetail() {
   async function handleConfirmStatusChange() {
     if (!ticket || !selectedStatus) return;
     try {
-      const updated = await updateTicketStatus(ticket.id, selectedStatus);
-      setTicket(updated);
+      await updateTicketStatus(ticket.id, selectedStatus);
+      await loadTicketData();
       setIsStatusModalOpen(false);
       showSuccess(`Ticket status updated to ${selectedStatus.replace(/_/g, " ")}.`);
     } catch (err: any) {
@@ -284,11 +319,15 @@ export default function StaffTicketDetail() {
             <div className="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
               <div>
                 <span className="text-muted small">Ticket Number:</span>
-                <h4 className="fw-bold mb-0 text-primary">{ticket.ticketNumber}</h4>
+                <h4 className="fw-bold mb-0 text-success">{ticket.ticketNumber}</h4>
               </div>
               <div className="d-flex align-items-center gap-2">
-                <span className="badge bg-secondary">{ticket.currentStatus.replace(/_/g, " ")}</span>
-                <span className="badge bg-danger">{ticket.itPriority || ticket.requestedPriority}</span>
+                <span className={`badge ${getStatusBadgeClass(ticket.currentStatus)}`}>
+                  {ticket.currentStatus.replace(/_/g, " ")}
+                </span>
+                <span className={`badge ${getPriorityBadgeClass(ticket.itPriority || ticket.requestedPriority)}`}>
+                  {ticket.itPriority || ticket.requestedPriority}
+                </span>
               </div>
             </div>
             <div className="card-body">
@@ -403,8 +442,8 @@ export default function StaffTicketDetail() {
                           <div className="d-flex justify-content-between align-items-center mb-1">
                             <span className="fw-semibold small">{c.author.name}</span>
                             <div className="d-flex align-items-center gap-2">
-                              <span className="badge bg-secondary" style={{ fontSize: "0.7rem" }}>
-                                {c.author.role}
+                              <span className={`badge ${getRoleBadgeClass(c.author.role)}`} style={{ fontSize: "0.7rem" }}>
+                                {c.author.role.replace(/_/g, " ")}
                               </span>
                               <span className="text-muted" style={{ fontSize: "0.75rem" }}>
                                 {new Date(c.createdAt).toLocaleTimeString([], {
@@ -545,10 +584,10 @@ export default function StaffTicketDetail() {
                       <em className="text-muted">Unassigned</em>
                     )}
                   </span>
-                  {!ticket.assignedTo && (
+                  {(!ticket.assignedTo || ticket.assignedTo.id !== user?.id) && (
                     <button
                       type="button"
-                      className="btn btn-sm btn-outline-primary d-flex align-items-center gap-1"
+                      className="btn btn-sm btn-outline-success d-flex align-items-center gap-1"
                       onClick={handleClaimTicket}
                     >
                       <UserCheck size={14} /> Claim Ticket

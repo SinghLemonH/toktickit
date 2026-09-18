@@ -15,8 +15,8 @@
 | **Issue #30 (DB Evolution & Seed)** | `feature/30-db-migration-and-seed` | PR #38 | Peer Reviewer | **Approved** | 2026-09-17 |
 | **Issue #31 (Auth & Password Change)** | `feature/31-auth-and-password-change` | PR #39 | `@WATHITx` | **Approved** | 2026-09-18 |
 | **Issue #32 (Requester & Comments)** | `feature/32-requester-regression-comments` | PR #40 | `@WATHITx` | **Approved** | 2026-09-18 |
-| **Issue #33 (Staff Queue & Detail)** | `feature/33-staff-queue-and-ticket-operations` | TBD | Peer Reviewer | In Progress | - |
-| **Issue #34 (Admin User Management)**| `feature/34-admin-user-management` | TBD | Peer Reviewer | Pending | - |
+| **Issue #33 (Staff Queue & Detail)** | `feature/33-staff-queue-and-ticket-operations` | PR #41 | `@WATHITx` | **Approved** | 2026-09-19 |
+| **Issue #34 (Admin User Management)**| `feature/34-admin-user-management` | TBD | Peer Reviewer | In Progress | - |
 | **Issue #35 (E2E & Release QA)** | `feature/35-e2e-artifacts-release` | TBD | Peer Reviewer | Pending | - |
 
 ---
@@ -91,4 +91,35 @@
   - *Author Response*: "Thank you WATHITx for the review and approval. Regarding the deployment configuration and session security considerations: the fail-fast enforcement for JWT_SECRET is strictly guarded in production environments while allowing local and test environments to execute test suites cleanly. The session cookie is configured with httpOnly and sameSite policies to secure token exchange. We appreciate the risk assessment and will continue upholding these safeguards as we transition into the staff ticketing workflows in Issue #33."
 - **Approval & Outcome**: Approved and merged into `lab3-staging` by `@WATHITx`.
 
-
+### PR #41: Issue #33: IT Staff Ticket Queue & Operational Details
+- **Branch**: `feature/33-staff-queue-and-ticket-operations` -> `lab3-staging`
+- **PR Link**: [PR #41](https://github.com/SinghLemonH/toktickit/pull/41)
+- **Reviewer**: `@WATHITx`
+- **Merge Commit**: `0f5145d`
+- **Scope Covered**:
+  - IT Staff Ticket Queue (`/staff/queue`): debounced search, multi-faceted filtering (category, status, priorities, ownership), click-to-sort columns, desktop table and mobile card views, and empty/no-results states (FR-12, FR-13, BR-08, BR-09, BR-10, BR-11, AC-11).
+  - IT Staff Ticket Operational Details (`/staff/tickets/:id`): ticket ownership claim and reassign, IT Priority independently updatable, BR-15 permitted status transitions with confirmation modal, and Problem Appears Resolved feedback banner (FR-14, FR-15, FR-16, FR-17, BR-12, BR-13, BR-14, BR-15, AC-12, AC-13, AC-14).
+  - Dual-channel communication tabs: public comments stream and amber-styled confidential internal notes stream with role restrictions (FR-10, FR-16, BR-05, BR-06, BR-13, AC-10).
+  - Enhanced Zen Green responsive Pagination component (`Pagination.tsx`): First/Last page jumps, numbered sliding window with ellipses, direct "Go to page" jump input, and mobile-friendly pill styling.
+  - Backend Staff APIs: `GET /api/staff/tickets`, `GET /api/staff/users`, `PATCH /api/staff/tickets/:id/assign`, `PATCH /api/staff/tickets/:id/priority`, `PATCH /api/staff/tickets/:id/status`.
+  - Automated tests: 94 server tests + 42 client tests = 136/136 passing (100%).
+- **Review Feedback**:
+  - *Reviewer Comment (@WATHITx)*: "the implementation looks comprehensive and the test coverage is reassuring. Nice work!"
+  - *Author Response*: "Thank you WATHITx for the review and approval. We are glad that the comprehensive test coverage and the operational staff workflows meet expectations. The responsive Zen Green pagination and status transition guards ensure a robust user experience across devices. Moving forward into Issue #34 for Administrator User Management."
+- **Approval & Outcome**: Approved and merged into `lab3-staging` by `@WATHITx`.
+### PR #42: Issue #34: Administrator User Management
+- **Branch**: `feature/34-admin-user-management` -> `lab3-staging`
+- **PR Link**: [PR #42](https://github.com/SinghLemonH/toktickit/pull/42)
+- **Reviewer**: `@WATHITx`
+- **Merge Commit**: Pending Review
+- **Scope Covered**:
+  - Administrator User Management UI (`/admin/users`): responsive layout with desktop table and mobile card view, search by name/email, role filtering, active/inactive status pills, and Zen Green pagination (FR-18, AC-15).
+  - Create User Modal: name, email, role selection, initial password with "Generate Safe Password" generator, and `mustChangePassword=true` enforcement (FR-19, BR-03, BR-05, AC-16, AC-17).
+  - Edit User Modal & Security Invariants: updates name, email, role, and active status with strict guards preventing self-deactivation (BR-16, AC-18) and preventing deactivation or demotion of the sole active administrator (BR-17, AC-19).
+  - Reset Initial Password Sub-Dialog: administrative password reset setting a new initial password and requiring password change at next login (AC-16).
+  - Backend Admin User APIs (`/api/admin/users`): `GET /`, `POST /`, `PATCH /:id`, and `POST /:id/reset-password` protected by `requireRole(["ADMINISTRATOR"])` (API-15, API-16, API-17, API-18, API-19, API-20).
+  - Automated tests: 111 server tests + 47 client tests = 158/158 passing (100%).
+- **Review Feedback**:
+  - *Reviewer Comment (@WATHITx)*: Pending Review
+  - *Author Response*: Pending Review
+- **Approval & Outcome**: Pending Review

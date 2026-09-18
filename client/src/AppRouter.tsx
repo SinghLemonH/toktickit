@@ -9,6 +9,7 @@ import CreateTicket from "./pages/CreateTicket.js";
 import TicketDetail from "./pages/TicketDetail.js";
 import StaffTicketQueue from "./pages/StaffTicketQueue.js";
 import StaffTicketDetail from "./pages/StaffTicketDetail.js";
+import UserManagement from "./pages/UserManagement.js";
 import RouteGuard from "./components/RouteGuard.js";
 import AppShell from "./components/AppShell.js";
 import App from "./App.js";
@@ -81,6 +82,18 @@ export default function AppRouter() {
                 <RouteGuard allowedRoles={["IT_STAFF", "ADMINISTRATOR"]}>
                   <AppShell>
                     <StaffTicketDetail />
+                  </AppShell>
+                </RouteGuard>
+              }
+            />
+
+            {/* Administrator Routes */}
+            <Route
+              path="/admin/users"
+              element={
+                <RouteGuard allowedRoles={["ADMINISTRATOR"]}>
+                  <AppShell>
+                    <UserManagement />
                   </AppShell>
                 </RouteGuard>
               }

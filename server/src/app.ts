@@ -10,6 +10,7 @@ import { authenticate } from "./middleware/auth.js";
 import { authRouter } from "./routes/auth.js";
 import { commentsRouter } from "./routes/comments.js";
 import { staffTicketsRouter } from "./routes/staffTickets.js";
+import { adminUsersRouter } from "./routes/adminUsers.js";
 import { upload, UPLOAD_DIR, MAX_ACTIVE_ATTACHMENTS } from "./upload.js";
 import { getNextTicketNumber } from "./lib/ticketNumber.js";
 
@@ -29,6 +30,7 @@ app.use(authenticate);
 app.use("/api/auth", authRouter);
 app.use(commentsRouter);
 app.use(staffTicketsRouter);
+app.use("/api/admin/users", adminUsersRouter);
 
 app.get("/api/health", (_req: Request, res: Response) => {
   res.status(200).json({ status: "ok", service: "TokTickIT API" });
@@ -309,6 +311,7 @@ app.get(
           category: { select: { name: true } },
           relatedSystem: { select: { name: true } },
           requester: { select: { name: true } },
+          assignedTo: { select: { id: true, name: true, email: true, role: true } },
           attachments: {
             orderBy: { uploadedAt: "asc" },
             select: {
@@ -341,6 +344,8 @@ app.get(
         itPriority: ticket.itPriority,
         currentStatus: ticket.currentStatus,
         isProblemResolvedIndicated: ticket.isProblemResolvedIndicated,
+        assignedToId: ticket.assignedToId,
+        assignedTo: ticket.assignedTo,
         attachments: ticket.attachments,
       });
     } catch (err) {
