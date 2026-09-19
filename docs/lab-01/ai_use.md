@@ -1,6 +1,6 @@
-# AI Use and Reflection — Lab 1
+# AI Use and Reflection: Lab 1
 
-I used [Claude / Antigravity with Gemini — ระบุของจริง] as my AI coding assistant throughout Lab 1.
+I used [Claude / Antigravity with Gemini - ระบุของจริง] as my AI coding assistant throughout Lab 1.
 
 ## Selected Key Prompts
 
@@ -21,6 +21,6 @@ I used [Claude / Antigravity with Gemini — ระบุของจริง] 
 
 Overall, using an AI assistant sped up implementation significantly, especially for boilerplate (Express routes, Prisma models, Vitest mocks) and for diagnosing environment-specific errors (e.g. the Prisma shadow-database permission error, and the GitHub Issue vs. Pull Request numbering confusion on the board). 
 
-The most useful pattern was pasting terminal screenshots directly and asking "ถูกไหม" (is this right?) — this let the assistant catch subtle issues I wouldn't have noticed myself, like leftover TODO comments in `schema.prisma`, unused `void getPrisma;` placeholders, and a generic offline error message that didn't match the specification. 
+The most useful pattern was pasting terminal screenshots directly and asking "ถูกไหม" (is this right?) - this let the assistant catch subtle issues I wouldn't have noticed myself, like leftover TODO comments in `schema.prisma`, unused `void getPrisma;` placeholders, and a generic offline error message that didn't match the specification. 
 
 I had to stay actively involved to understand *why* each fix worked (e.g. why `fetch()` throws before reaching `res.ok`, why the shadow database needs `CREATEDB` permission, why feature branches should branch from `lab1-staging` and not `main`) rather than just copy-pasting code, since I remain responsible for explaining every change during grading.

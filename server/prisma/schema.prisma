@@ -1,7 +1,7 @@
-// Prisma schema — datasource and generator are pre-wired.
+// Prisma schema datasource and generator are pre-wired.
 // Your DATABASE_URL lives in server/.env (copy it from .env.example).
 //
-// LOCKED for Lab 2 — see docs/lab-02/schema.prisma for full rationale on every
+// LOCKED for Lab 2 see docs/lab-02/schema.prisma for full rationale on every
 // field/index. Do not modify without updating that doc + specification.md
 // Section 7 and getting reviewer sign-off.
 
@@ -46,8 +46,6 @@ model DevRequester {
   email     String   @unique
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
-
-  tickets Ticket[]
 }
 
 // Internal helper table for race-free Ticket Number generation.
@@ -63,16 +61,47 @@ enum Priority {
   HIGH
 }
 
-// Full lifecycle declared now so Lab 3+ workflow features add behavior, not a
-// schema migration. Lab 2 only ever sets NEW.
+enum Role {
+  REQUESTER
+  IT_STAFF
+  ADMINISTRATOR
+}
+
+// Permitted ticket statuses for Sprint 3 (BR-14)
 enum TicketStatus {
   NEW
   OPEN
   IN_PROGRESS
+  WAITING_FOR_REQUESTER
   PENDING
   RESOLVED
   CLOSED
+  REOPENED
   CANCELLED
+}
+
+// ----------------------------------------------------------------------------
+// SPRINT 3 (LAB 3) MODELS
+// ----------------------------------------------------------------------------
+
+model User {
+  id                 Int       @id @default(autoincrement())
+  email              String    @unique
+  name               String
+  passwordHash       String
+  role               Role      @default(REQUESTER)
+  isActive           Boolean   @default(true)
+  mustChangePassword Boolean   @default(false)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  submittedTickets   Ticket[]       @relation("RequesterTickets")
+  assignedTickets    Ticket[]       @relation("AssignedTickets")
+  comments           Comment[]
+  internalNotes      InternalNote[]
+
+  @@index([role])
+  @@index([isActive])
 }
 
 model Ticket {
@@ -80,7 +109,10 @@ model Ticket {
   ticketNumber String @unique
 
   requesterId Int
-  requester   DevRequester @relation(fields: [requesterId], references: [id])
+  requester   User   @relation("RequesterTickets", fields: [requesterId], references: [id])
+
+  assignedToId Int?
+  assignedTo   User?  @relation("AssignedTickets", fields: [assignedToId], references: [id])
 
   categoryId Int
   category   Category @relation(fields: [categoryId], references: [id])
@@ -91,19 +123,25 @@ model Ticket {
   summary     String
   description String
 
-  requestedPriority Priority
-  itPriority        Priority?
-  currentStatus     TicketStatus @default(NEW)
+  requestedPriority          Priority
+  itPriority                 Priority?
+  currentStatus              TicketStatus @default(NEW)
+  isProblemResolvedIndicated Boolean      @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  attachments Attachment[]
+  attachments   Attachment[]
+  comments      Comment[]
+  internalNotes InternalNote[]
 
   @@index([requesterId, createdAt])
+  @@index([assignedToId])
   @@index([categoryId])
   @@index([relatedSystemId])
   @@index([currentStatus])
+  @@index([requestedPriority])
+  @@index([itPriority])
 }
 
 model Attachment {
@@ -121,4 +159,28 @@ model Attachment {
   removalReason String?
 
   @@index([ticketId])
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  ticketId  Int
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorId  Int
+  author    User     @relation(fields: [authorId], references: [id])
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([ticketId, createdAt])
+}
+
+model InternalNote {
+  id        Int      @id @default(autoincrement())
+  ticketId  Int
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorId  Int
+  author    User     @relation(fields: [authorId], references: [id])
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([ticketId, createdAt])
 }

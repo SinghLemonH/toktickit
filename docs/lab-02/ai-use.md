@@ -1,4 +1,4 @@
-# AI Use and Reflection — Lab 2
+# AI Use and Reflection: Lab 2
 
 I used **Antigravity with Google Gemini (gemini-2.5-pro / flash)** as my AI coding assistant throughout Lab 2.
 

@@ -103,7 +103,8 @@ export async function getMyTickets(
     if (value !== undefined && value !== "") params.set(key, String(value));
   }
   const res = await fetch(`${API_URL}/api/tickets?${params.toString()}`, {
-    headers: { "X-Dev-Requester-Id": String(requesterId) },
+    headers: requesterId ? { "X-Dev-Requester-Id": String(requesterId) } : {},
+    credentials: "include",
   });
   if (!res.ok) throw new Error("Unable to load tickets");
   return res.json();
@@ -152,7 +153,8 @@ export async function createTicket(
 
   const res = await fetch(`${API_URL}/api/tickets`, {
     method: "POST",
-    headers: { "X-Dev-Requester-Id": String(requesterId) },
+    headers: requesterId ? { "X-Dev-Requester-Id": String(requesterId) } : {},
+    credentials: "include",
     body: formData,
   });
 
@@ -191,6 +193,9 @@ export interface TicketDetail {
   requestedPriority: "LOW" | "MEDIUM" | "HIGH";
   itPriority: string | null;
   currentStatus: string;
+  isProblemResolvedIndicated: boolean;
+  assignedToId?: number | null;
+  assignedTo?: { id: number; name: string; email?: string; role?: string } | null;
   attachments: AttachmentMetadata[];
 }
 
@@ -199,7 +204,8 @@ export async function getTicketDetail(
   ticketId: number
 ): Promise<TicketDetail> {
   const res = await fetch(`${API_URL}/api/tickets/${ticketId}`, {
-    headers: { "X-Dev-Requester-Id": String(requesterId) },
+    headers: requesterId ? { "X-Dev-Requester-Id": String(requesterId) } : {},
+    credentials: "include",
   });
   if (res.status === 404) {
     throw new Error("NOT_FOUND");
@@ -220,7 +226,8 @@ export async function uploadAttachment(
 
   const res = await fetch(`${API_URL}/api/tickets/${ticketId}/attachments`, {
     method: "POST",
-    headers: { "X-Dev-Requester-Id": String(requesterId) },
+    headers: requesterId ? { "X-Dev-Requester-Id": String(requesterId) } : {},
+    credentials: "include",
     body: formData,
   });
 
@@ -238,7 +245,8 @@ export async function downloadAttachment(
   filename: string
 ): Promise<void> {
   const res = await fetch(`${API_URL}/api/attachments/${attachmentId}/download`, {
-    headers: { "X-Dev-Requester-Id": String(requesterId) },
+    headers: requesterId ? { "X-Dev-Requester-Id": String(requesterId) } : {},
+    credentials: "include",
   });
   if (!res.ok) throw new Error("Unable to download attachment");
   const blob = await res.blob();
@@ -260,9 +268,10 @@ export async function removeAttachment(
   const res = await fetch(`${API_URL}/api/attachments/${attachmentId}`, {
     method: "DELETE",
     headers: {
-      "X-Dev-Requester-Id": String(requesterId),
+      ...(requesterId ? { "X-Dev-Requester-Id": String(requesterId) } : {}),
       "Content-Type": "application/json",
     },
+    credentials: "include",
     body: JSON.stringify({ reason }),
   });
 
@@ -273,3 +282,323 @@ export async function removeAttachment(
 
   return res.json();
 }
+
+// ----------------------------------------------------------------------------
+// SPRINT 3: PUBLIC COMMENTS & RESOLUTION INDICATION (ISSUE #32)
+// ----------------------------------------------------------------------------
+
+export interface CommentAuthor {
+  id: number;
+  name: string;
+  role: "REQUESTER" | "IT_STAFF" | "ADMINISTRATOR";
+}
+
+export interface PublicComment {
+  id: number;
+  ticketId: number;
+  content: string;
+  createdAt: string;
+  author: CommentAuthor;
+}
+
+export async function getPublicComments(ticketId: number): Promise<PublicComment[]> {
+  const res = await fetch(`${API_URL}/api/tickets/${ticketId}/comments`, {
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("Unable to load comments");
+  return res.json();
+}
+
+export async function postPublicComment(
+  ticketId: number,
+  content: string
+): Promise<PublicComment> {
+  const res = await fetch(`${API_URL}/api/tickets/${ticketId}/comments`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ content }),
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error?.message || "Failed to post comment");
+  }
+
+  return res.json();
+}
+
+export async function indicateProblemResolved(
+  ticketId: number
+): Promise<{ id: number; ticketNumber: string; isProblemResolvedIndicated: boolean }> {
+  const res = await fetch(`${API_URL}/api/tickets/${ticketId}/resolve-indicated`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error?.message || "Failed to mark problem as resolved");
+  }
+
+  return res.json();
+}
+
+// ----------------------------------------------------------------------------
+// SPRINT 3: IT STAFF TICKET QUEUE & OPERATIONS
+// ----------------------------------------------------------------------------
+
+export interface StaffQueueTicket {
+  id: number;
+  ticketNumber: string;
+  createdAt: string;
+  updatedAt?: string;
+  summary: string;
+  category: { id: number; name: string };
+  requester: { id: number; name: string; email?: string };
+  assignedTo: { id: number; name: string; email?: string; role?: string } | null;
+  requestedPriority: "LOW" | "MEDIUM" | "HIGH";
+  itPriority: string | null;
+  currentStatus: string;
+  isProblemResolvedIndicated: boolean;
+}
+
+export interface StaffQueueResponse {
+  tickets: StaffQueueTicket[];
+  pagination: {
+    totalItems: number;
+    totalPages: number;
+    currentPage: number;
+    pageSize: number;
+  };
+}
+
+export interface StaffQueueParams {
+  search?: string;
+  status?: string;
+  categoryId?: number;
+  requestedPriority?: string;
+  itPriority?: string;
+  assignedTo?: string;
+  sortBy?: string;
+  sortOrder?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface StaffUser {
+  id: number;
+  name: string;
+  email: string;
+  role: "IT_STAFF" | "ADMINISTRATOR";
+  isActive: boolean;
+}
+
+export interface InternalNote {
+  id: number;
+  ticketId: number;
+  content: string;
+  createdAt: string;
+  author: {
+    id: number;
+    name: string;
+    role: string;
+  };
+}
+
+export async function getStaffTickets(params?: StaffQueueParams): Promise<StaffQueueResponse> {
+  const q = new URLSearchParams();
+  if (params) {
+    for (const [key, value] of Object.entries(params)) {
+      if (value !== undefined && value !== "") {
+        q.set(key, String(value));
+      }
+    }
+  }
+  const res = await fetch(`${API_URL}/api/staff/tickets?${q.toString()}`, {
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("Unable to load staff ticket queue");
+  return res.json();
+}
+
+export async function getStaffUsers(): Promise<StaffUser[]> {
+  const res = await fetch(`${API_URL}/api/staff/users`, {
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("Unable to load staff users");
+  return res.json();
+}
+
+export async function assignStaffTicket(
+  ticketId: number,
+  assignedToId: number | null
+): Promise<TicketDetail> {
+  const res = await fetch(`${API_URL}/api/staff/tickets/${ticketId}/assign`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ assignedToId }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error?.message || "Failed to assign ticket");
+  }
+  return res.json();
+}
+
+export async function updateTicketItPriority(
+  ticketId: number,
+  itPriority: string
+): Promise<TicketDetail> {
+  const res = await fetch(`${API_URL}/api/staff/tickets/${ticketId}/priority`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ itPriority }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error?.message || "Failed to update IT Priority");
+  }
+  return res.json();
+}
+
+export async function updateTicketStatus(
+  ticketId: number,
+  status: string
+): Promise<TicketDetail> {
+  const res = await fetch(`${API_URL}/api/staff/tickets/${ticketId}/status`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ status }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error?.message || "Failed to update ticket status");
+  }
+  return res.json();
+}
+
+export async function getInternalNotes(ticketId: number): Promise<InternalNote[]> {
+  const res = await fetch(`${API_URL}/api/staff/tickets/${ticketId}/notes`, {
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("Unable to load internal notes");
+  return res.json();
+}
+
+export async function addInternalNote(ticketId: number, content: string): Promise<InternalNote> {
+  const res = await fetch(`${API_URL}/api/staff/tickets/${ticketId}/notes`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ content }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error?.message || "Failed to add internal note");
+  }
+  return res.json();
+}
+
+// Lab 3: Issue #34 Administrator User Management
+export interface AdminUser {
+  id: number;
+  name: string;
+  email: string;
+  role: "REQUESTER" | "IT_STAFF" | "ADMINISTRATOR";
+  isActive: boolean;
+  mustChangePassword: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface AdminUserFilterParams {
+  q?: string;
+  role?: string;
+  isActive?: boolean;
+}
+
+export interface CreateAdminUserPayload {
+  name: string;
+  email: string;
+  role: "REQUESTER" | "IT_STAFF" | "ADMINISTRATOR";
+  isActive?: boolean;
+  initialPassword: string;
+}
+
+export interface UpdateAdminUserPayload {
+  name?: string;
+  email?: string;
+  role?: "REQUESTER" | "IT_STAFF" | "ADMINISTRATOR";
+  isActive?: boolean;
+}
+
+export async function getAdminUsers(params?: AdminUserFilterParams): Promise<AdminUser[]> {
+  const q = new URLSearchParams();
+  if (params) {
+    if (params.q) q.set("q", params.q);
+    if (params.role) q.set("role", params.role);
+    if (params.isActive !== undefined) q.set("isActive", String(params.isActive));
+  }
+  const queryStr = q.toString() ? `?${q.toString()}` : "";
+  const res = await fetch(`${API_URL}/api/admin/users${queryStr}`, {
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error?.message || data.error || "Failed to load users");
+  }
+  return res.json();
+}
+
+export async function createAdminUser(payload: CreateAdminUserPayload): Promise<AdminUser> {
+  const res = await fetch(`${API_URL}/api/admin/users`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error?.message || data.error || "Failed to create user");
+  }
+  return res.json();
+}
+
+export async function updateAdminUser(
+  userId: number,
+  payload: UpdateAdminUserPayload
+): Promise<AdminUser> {
+  const res = await fetch(`${API_URL}/api/admin/users/${userId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error?.message || data.error || "Failed to update user");
+  }
+  return res.json();
+}
+
+export async function resetUserPassword(
+  userId: number,
+  initialPassword: string
+): Promise<{ message: string }> {
+  const res = await fetch(`${API_URL}/api/admin/users/${userId}/reset-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ initialPassword }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error?.message || data.error || "Failed to reset password");
+  }
+  return res.json();
+}

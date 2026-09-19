@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { useAuth } from "./AuthContext.js";
 
 export interface SelectedRequester {
   id: number;
@@ -19,14 +20,15 @@ const STORAGE_KEY = "toktickit.selectedRequester";
 const RequesterContext = createContext<RequesterContextValue | undefined>(undefined);
 
 export function RequesterProvider({ children }: { children: ReactNode }) {
-  const [requester, setRequester] = useState<SelectedRequester | null>(null);
+  const { user } = useAuth();
+  const [storedRequester, setStoredRequester] = useState<SelectedRequester | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
     const stored = sessionStorage.getItem(STORAGE_KEY);
     if (stored) {
       try {
-        setRequester(JSON.parse(stored));
+        setStoredRequester(JSON.parse(stored));
       } catch {
         sessionStorage.removeItem(STORAGE_KEY);
       }
@@ -35,14 +37,19 @@ export function RequesterProvider({ children }: { children: ReactNode }) {
   }, []);
 
   function selectRequester(next: SelectedRequester) {
-    setRequester(next);
+    setStoredRequester(next);
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   }
 
   function clearRequester() {
-    setRequester(null);
+    setStoredRequester(null);
     sessionStorage.removeItem(STORAGE_KEY);
   }
+
+  // If user is authenticated via Lab 3, bridge user identity seamlessly
+  const requester: SelectedRequester | null = user
+    ? { id: user.id, name: user.name }
+    : storedRequester;
 
   return (
     <RequesterContext.Provider value={{ requester, isLoaded, selectRequester, clearRequester }}>

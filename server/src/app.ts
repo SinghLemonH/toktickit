@@ -1,17 +1,36 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import fs from "node:fs";
 import path from "node:path";
 import type { Prisma } from "@prisma/client";
 import { getPrisma } from "./prisma.js";
 import { requireActiveRequester, type RequestWithRequester } from "./middleware/requireActiveRequester.js";
+import { authenticate } from "./middleware/auth.js";
+import { authRouter } from "./routes/auth.js";
+import { commentsRouter } from "./routes/comments.js";
+import { staffTicketsRouter } from "./routes/staffTickets.js";
+import { adminUsersRouter } from "./routes/adminUsers.js";
 import { upload, UPLOAD_DIR, MAX_ACTIVE_ATTACHMENTS } from "./upload.js";
 import { getNextTicketNumber } from "./lib/ticketNumber.js";
 
 export const app = express();
 
-app.use(cors());
+app.use(
+  cors({
+    origin: true,
+    credentials: true,
+  })
+);
+app.use(cookieParser());
 app.use(express.json());
+app.use(authenticate);
+
+// Sprint 3 Authentication, Comments & Staff Routes
+app.use("/api/auth", authRouter);
+app.use(commentsRouter);
+app.use(staffTicketsRouter);
+app.use("/api/admin/users", adminUsersRouter);
 
 app.get("/api/health", (_req: Request, res: Response) => {
   res.status(200).json({ status: "ok", service: "TokTickIT API" });
@@ -278,15 +297,21 @@ app.get(
 
     try {
       const prisma = getPrisma();
+      const isStaffOrAdmin =
+        req.user && (req.user.role === "IT_STAFF" || req.user.role === "ADMINISTRATOR");
+
       const ticket = await prisma.ticket.findFirst({
-        where: {
-          id,
-          requesterId: req.requester!.id, // BR-10, BR-11, BR-38: ownership check (404 if not owned)
-        },
+        where: isStaffOrAdmin
+          ? { id }
+          : {
+              id,
+              requesterId: req.requester!.id, // BR-10, BR-11, BR-38: ownership check (404 if not owned)
+            },
         include: {
           category: { select: { name: true } },
           relatedSystem: { select: { name: true } },
           requester: { select: { name: true } },
+          assignedTo: { select: { id: true, name: true, email: true, role: true } },
           attachments: {
             orderBy: { uploadedAt: "asc" },
             select: {
@@ -318,6 +343,9 @@ app.get(
         requestedPriority: ticket.requestedPriority,
         itPriority: ticket.itPriority,
         currentStatus: ticket.currentStatus,
+        isProblemResolvedIndicated: ticket.isProblemResolvedIndicated,
+        assignedToId: ticket.assignedToId,
+        assignedTo: ticket.assignedTo,
         attachments: ticket.attachments,
       });
     } catch (err) {
