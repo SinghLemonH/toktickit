@@ -60,10 +60,10 @@ TokTickIT employs a three-tier automated testing pyramid for Lab 3:
 | **UI-03** | Component | AC-11 | Staff Queue table rendering & search debouncing | Renders table with badges, filters trigger updates, handles empty state | `client/tests/lab-03/StaffTicketQueue.test.tsx` | **Passed** |
 | **UI-04** | Component | AC-12 | Staff Ticket Detail controls & tabs | Renders dual tabs (Comments vs Notes), claim button, status modal | `client/tests/lab-03/StaffTicketDetail.test.tsx` | **Passed** |
 | **UI-05** | Component | AC-18 | Admin User Management safety warnings | Disables self-deactivation switch with tooltip; shows last admin alert | `client/tests/lab-03/UserManagement.test.tsx` | **Passed** |
-| **E2E-01** | E2E | AC-01 | End-to-end login, app shell navigation, logout | User logs in, sees role navigation, logs out, session terminated | `e2e/lab-03/authentication.spec.ts` | Planned |
-| **E2E-02** | E2E | AC-04 | Mandatory password change on first login | Initial password user is forced to change password before entering app | `e2e/lab-03/authentication.spec.ts` | Planned |
-| **E2E-03** | E2E | AC-12 | Complete Staff Ticket handling flow | Staff views queue, claims ticket, changes priority/status, writes note | `e2e/lab-03/staff-ticket-flow.spec.ts` | Planned |
-| **E2E-04** | E2E | AC-16 | Admin User Management lifecycle | Admin creates user, edits role, sets initial password, verifies safety guards | `e2e/lab-03/user-administration.spec.ts` | Planned |
+| **E2E-01** | E2E | AC-01 | End-to-end login, app shell navigation, logout | User logs in, sees role navigation, logs out, session terminated | `e2e/lab-03/authentication.spec.ts` | **Passed** |
+| **E2E-02** | E2E | AC-04 | Mandatory password change on first login | Initial password user is forced to change password before entering app | `e2e/lab-03/authentication.spec.ts` | **Passed** |
+| **E2E-03** | E2E | AC-12 | Complete Staff Ticket handling flow | Staff views queue, claims ticket, changes priority/status, writes note | `e2e/lab-03/staff-ticket-flow.spec.ts` | **Passed** |
+| **E2E-04** | E2E | AC-16 | Admin User Management lifecycle | Admin creates user, edits role, sets initial password, verifies safety guards | `e2e/lab-03/user-administration.spec.ts` | **Passed** |
 
 ---
 
