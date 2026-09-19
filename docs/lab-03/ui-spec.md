@@ -162,7 +162,36 @@ TokTickIT utilizes Bootstrap 5 themed through CSS custom property overrides in `
 ---
 
 ## 4. Accessibility & Feedback Checklist
-- [ ] Color contrast ratios $\ge 4.5:1$ for all text against backgrounds.
-- [ ] Visible focus rings (`outline: 2px solid #006B3C`) on keyboard tab navigation.
-- [ ] `aria-label` and `role` attributes on buttons, toggles, badges, and modal dialogs.
-- [ ] Screen reader friendly alerts (`aria-live="polite"`) for form validation and success toasts.
+- [x] Color contrast ratios >= 4.5:1 for all text against backgrounds.
+- [x] Visible focus rings (`outline: 2px solid #006B3C`) on keyboard tab navigation.
+- [x] `aria-label` and `role` attributes on buttons, toggles, badges, and modal dialogs.
+- [x] Screen reader friendly alerts (`aria-live="polite"`) for form validation and success toasts.
+
+---
+
+## 5. Visual Inspection & Responsive Verification Checklist
+
+### 5.1. Responsive Screenshot Matrix (Desktop, Tablet, Mobile)
+
+| Major Screen | Desktop (1280x800) | Tablet (768x1024) | Mobile (375x667) |
+| :--- | :--- | :--- | :--- |
+| **Login Screen** | `screenshots/responsive-login-desktop.png` | `screenshots/responsive-login-tablet.png` | `screenshots/responsive-login-mobile.png` |
+| **Change Password** | `screenshots/responsive-change-password-desktop.png` | `screenshots/responsive-change-password-tablet.png` | `screenshots/responsive-change-password-mobile.png` |
+| **Staff Ticket Queue** | `screenshots/responsive-queue-desktop.png` | `screenshots/responsive-queue-tablet.png` | `screenshots/responsive-queue-mobile.png` |
+| **Staff Ticket Detail** | `screenshots/responsive-detail-desktop.png` | `screenshots/responsive-detail-tablet.png` | `screenshots/responsive-detail-mobile.png` |
+| **User Management** | `screenshots/responsive-admin-desktop.png` | `screenshots/responsive-admin-tablet.png` | `screenshots/responsive-admin-mobile.png` |
+
+### 5.2. Completed Responsive Visual Quality Checklist
+
+| Inspection Dimension | Verification Criterion | Status | Evidence & Observation |
+| :--- | :--- | :--- | :--- |
+| **Design Consistency** | Bootstrap 5 with Zen Green brand overrides (`#006B3C`, `#E8F5E9`, `#F8F9FA`). Consistent card radius (`12px`/`8px`), typography hierarchy, and alert styling across all screens. | **Verified** | Standardized CSS variables applied; header, cards, and modal dialogs conform to Zen Green theme. |
+| **Role-Based Navigation** | Requester views `My Tickets` and `+ Create Ticket`; IT Staff views `Ticket Queue`; Administrator views `Ticket Queue` and `User Management`. Profile badge displays user's assigned role. | **Verified** | Tested in E2E-01 and E2E-03; non-admins never see administrative navigation links. |
+| **Status & Priority Badges** | Distinct color palettes for all ticket statuses (`NEW`, `OPEN`, `IN_PROGRESS`, `WAITING_FOR_REQUESTER`, `RESOLVED`, `CLOSED`, `REOPENED`) and priorities (`LOW`, `MEDIUM`, `HIGH`). | **Verified** | Dynamic badge helper functions applied across Queue and Detail views; contrast verified. |
+| **Editable vs Read-Only** | Requester ticket detail fields are strictly read-only. IT Staff operational controls (owner, priority, status) are clearly demarcated inside an action card. | **Verified** | Requester views cannot edit operational controls; IT Staff controls trigger modal confirmations. |
+| **Validation Placement** | Inline field errors appear directly below offending inputs. Server error banners appear at card tops with dismiss buttons. | **Verified** | Real-time complexity checklist on password forms; login error banners present safe messages without leaking account existence. |
+| **Focus & Keyboard Navigation** | All form controls, buttons, dropdowns, and modal dialogs receive visible focus outlines. Tab order follows logical document flow. | **Verified** | Keyboard accessible modals with focus trapping and ESC/close button triggers. |
+| **Clipping & Truncation** | Ticket summaries and emails truncate cleanly with ellipsis without text clipping or overflow outside bounding boxes. | **Verified** | Verified across all viewports down to 375px mobile viewport. |
+| **Overlap & Stacking** | Modals, backdrops (`rgba(0,0,0,0.6)`), tooltips, and sticky headers use coordinated z-index scales (`z-index: 1050+`). No overlapping floating elements. | **Verified** | Confirmation dialogs, create modals, and reset password sub-modals render cleanly above backdrop. |
+| **Horizontal Overflow** | Zero horizontal scrollbars (`overflow-x: hidden`) on viewport boundaries (375px mobile, 768px tablet, 1280px desktop). Tables switch to responsive cards on mobile. | **Verified** | Mobile viewports verified in automated Playwright responsive suite without horizontal scroll. |
+
