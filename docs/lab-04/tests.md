@@ -46,28 +46,30 @@ The following intentional contract changes evolved earlier sprint behavior:
 | **API-14** | API | BR-08 | Create Planned Action with future date | HTTP 201 Created; future date accepted for planning | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
 | **API-15** | API | BR-08 | Create Completed Action with future date > 5 minutes | HTTP 400 `VALIDATION_ERROR`; rejected | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
 | **API-16** | API | FR-01 | Create Action directly as Completed with result | HTTP 201 Created; status Completed and `completedById` recorded | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
+| **API-17** | API | BR-08 | Complete future Planned Action without actionAt | HTTP 200 OK; actionAt automatically resets to current time | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
 | **SEC-01** | Security | AC-05, BR-03 | Requester attempts to call staff action endpoints | HTTP 403 Forbidden; no records written | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
 | **SEC-02** | Security | AC-06, FR-05 | Requester reads actions of own vs other ticket | Own ticket: HTTP 200; Other ticket: HTTP 404 | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
 | **WF-01** | API | AC-07, FR-07, BR-11 | Transition to Resolved failing resolution gate | HTTP 400 `RESOLUTION_GATE_NOT_MET` with reasons | `server/tests/lab-04/ticket-workflow.api.test.ts` | Planned |
 | **WF-02** | API | AC-08, BR-11, BR-16 | Transition to Resolved satisfying all gate rules | HTTP 200; status updated; history recorded | `server/tests/lab-04/ticket-workflow.api.test.ts` | Planned |
 | **WF-03** | API | AC-09, BR-12 | Transition outside authorized state matrix | HTTP 400 `INVALID_STATUS_TRANSITION`; rejected | `server/tests/lab-04/ticket-workflow.api.test.ts` | Planned |
 | **WF-04** | API | AC-10, FR-10, BR-17 | Status change with outdated `expectedVersion` | HTTP 409 `STALE_UPDATE`; status preserved | `server/tests/lab-04/ticket-workflow.api.test.ts` | Planned |
-| **WF-05** | API | AC-15, FR-08, BR-13 | Requester reopens own Resolved or Closed ticket | HTTP 200; status Reopened; advisory flag cleared | `server/tests/lab-04/ticket-workflow.api.test.ts` | Planned |
+| **WF-05** | API | AC-15, FR-08, BR-13 | Requester reopens own Resolved or Closed ticket | HTTP 200; status Reopened; reason recorded; advisory flag cleared | `server/tests/lab-04/ticket-workflow.api.test.ts` | Planned |
 | **WF-06** | API | AC-11, FR-11, BR-15 | Requester sets "problem appears resolved" flag | HTTP 200; flag true; ticket status unchanged | `server/tests/lab-04/ticket-workflow.api.test.ts` | Planned |
-| **WF-07** | API | AC-12, FR-09, BR-16 | Retrieve ticket status audit history | HTTP 200; chronological order; immutable | `server/tests/lab-04/ticket-workflow.api.test.ts` | Planned |
+| **WF-07** | API | AC-12, FR-09, BR-16 | Retrieve ticket status audit history | HTTP 200; chronological order; reason included | `server/tests/lab-04/ticket-workflow.api.test.ts` | Planned |
 | **WF-08** | API | BR-18 | Attempt to reassign owner on Resolved ticket | HTTP 400 `TICKET_LOCKED`; assignment blocked | `server/tests/lab-04/ticket-workflow.api.test.ts` | Planned |
 | **WF-09** | API | AC-10, BR-17 | Assign ticket owner with stale `expectedVersion` | HTTP 409 `STALE_UPDATE`; assignment rejected | `server/tests/lab-04/ticket-workflow.api.test.ts` | Planned |
+| **WF-10** | API | AC-10, BR-17 | Reopen ticket with stale `expectedVersion` | HTTP 409 `STALE_UPDATE`; reopen rejected | `server/tests/lab-04/ticket-workflow.api.test.ts` | Planned |
 | **DASH-01** | API | AC-02, BR-22 | Requester dashboard metrics isolation | HTTP 200; counts scoped only to caller tickets | `server/tests/lab-04/requester-dashboard.api.test.ts` | Planned |
 | **DASH-02** | API | FR-12, BR-19, BR-20 | Requester metric calculation accuracy | Counts match independent database queries | `server/tests/lab-04/requester-dashboard.api.test.ts` | Planned |
 | **DASH-03** | API | AC-14, BR-23 | Requester dashboard for user with 0 tickets | HTTP 200; counts = 0; attentionTickets = []; recentTickets = [] | `server/tests/lab-04/requester-dashboard.api.test.ts` | Planned |
-| **DASH-04** | API | AC-13, FR-13, BR-21 | Staff dashboard operational calculations | Active counts match database `groupBy` queries | `server/tests/lab-04/staff-dashboard.api.test.ts` | Planned |
+| **DASH-04** | API | AC-13, FR-13, BR-21 | Staff dashboard operational calculations (6 cards) | Active counts match database `groupBy` queries | `server/tests/lab-04/staff-dashboard.api.test.ts` | Planned |
 | **DASH-05** | API | AC-13, FR-15, FR-16 | Drill-down parity check with `statusGroup=active` | Filtered queue count equals dashboard card count | `server/tests/lab-04/staff-dashboard.api.test.ts` | Planned |
 | **DASH-06** | API | FR-14 | Administrator extra user account metrics | `userCounts` returned for Admin; absent for Staff | `server/tests/lab-04/staff-dashboard.api.test.ts` | Planned |
 | **DASH-SEC** | Security | BR-22 | Dashboard role authorization guards | Requester accessing staff dashboard gets 403; unauthenticated gets 401 | `server/tests/lab-04/staff-dashboard.api.test.ts` | Planned |
 | **PERF-01** | Smoke | BR-21 | Dashboard endpoint latency budget | Response time < 500ms on seeded dataset | `server/tests/lab-04/performance-smoke.test.ts` | Planned |
 | **MIG-01** | Migration | AC-16, BR-26 | Additive migration preserves existing data and rollback | Executed in isolated temp database/schema; tables and counts verified | `server/tests/lab-04/migration-seed.test.ts` | Planned |
 | **MIG-02** | Migration | BR-26 | Seed idempotency verification | Running seed twice produces identical row counts | `server/tests/lab-04/migration-seed.test.ts` | Planned |
-| **UI-01** | UI | FR-13, FR-15 | Staff dashboard metric cards and navigation | Cards display numbers and valid drill-down links | `client/tests/lab-04/StaffDashboard.test.tsx` | Planned |
+| **UI-01** | UI | FR-13, FR-15 | Staff dashboard metric cards (6 cards) and navigation | Cards display numbers and valid drill-down links | `client/tests/lab-04/StaffDashboard.test.tsx` | Planned |
 | **UI-02** | UI | AC-14, FR-18 | Staff dashboard loading, empty, and retry states | Skeleton rendered; retry button functional | `client/tests/lab-04/StaffDashboard.test.tsx` | Planned |
 | **UI-03** | UI | FR-12, FR-15 | Requester dashboard cards and attention tickets | Cards render correct values and navigate cleanly | `client/tests/lab-04/RequesterDashboard.test.tsx` | Planned |
 | **UI-04** | UI | FR-01, AC-03 | Actions Taken create form logic and validation | Follow-up note required only when checked | `client/tests/lab-04/ActionsTaken.test.tsx` | Planned |
@@ -75,6 +77,8 @@ The following intentional contract changes evolved earlier sprint behavior:
 | **UI-06** | UI | AC-19, FR-19 | Double submit prevention and form preservation | Button disabled while saving; text preserved | `client/tests/lab-04/ActionsTaken.test.tsx` | Planned |
 | **UI-07** | UI | AC-07, FR-06 | Resolution Gate feedback in status dropdown | Missing gate requirements displayed clearly | `client/tests/lab-04/TicketWorkflow.test.tsx` | Planned |
 | **UI-08** | UI | AC-20, FR-20 | Forbidden screen on unauthorized route | Renders 403 page with link to Dashboard | `client/tests/lab-04/Navigation.test.tsx` | Planned |
+| **UI-09** | UI | FR-04 | Actions Taken list renders Completed By and Assignee | Visible attribution for completed actions | `client/tests/lab-04/ActionsTaken.test.tsx` | Planned |
+| **UI-10** | UI | AC-15, FR-08 | Requester Reopen button and modal reason input | Opens modal, submits reason, refreshes status | `client/tests/lab-04/TicketWorkflow.test.tsx` | Planned |
 | **STYLE-01** | UI Style | AC-18 | Zen Green tokens and computed badge styles | Playwright verification of `theme.css` tokens and badge text cues | `e2e/lab-04/responsive-accessibility.spec.ts` | Planned |
 | **E2E-01** | E2E | AC-01, AC-06 | Multiple staff record actions on single ticket | Both actions visible; requester view read-only | `e2e/lab-04/actions-taken-flow.spec.ts` | Planned |
 | **E2E-02** | E2E | AC-07, AC-08, AC-15 | Full ticket lifecycle from create to reopen | Gate enforced; resolution recorded; reopen works | `e2e/lab-04/ticket-resolution.spec.ts` | Planned |

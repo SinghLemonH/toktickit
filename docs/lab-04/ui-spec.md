@@ -54,7 +54,7 @@ Matching the real `AppShell` and `MobileMenu` components:
 ### 3.1. IT Staff Dashboard
 - **Welcome Banner**: Displays staff member greeting and queue overview summary.
 - **Metric Cards Row**:
-  - 5 key operational cards: New, Open, In Progress, Waiting for Requester, My Assigned.
+  - 6 operational cards: New, Open, In Progress, Waiting for Requester, My Assigned, Unassigned.
   - Counts for `myAssigned` and `unassigned` aggregate active tickets only.
   - Each card shows large numerical counts and a clickable "View" drill-down link leading to `/staff/queue` with the corresponding filter parameter pre-applied.
 - **Main Section (2-Column Grid on Desktop)**:
@@ -85,25 +85,26 @@ Matching the real `AppShell` and `MobileMenu` components:
 Located between the Ticket Summary metadata card and the Comments section:
 - **IT Staff Mode**:
   - Header with "+ Add Action" button.
-  - Inline Add Action form with fields: Action Date/Time (defaults to now, allows future date for Planned), Assignee select (active staff only), Description textarea, Result textarea, Follow-Up Required checkbox, Follow-Up Note textarea (conditionally visible and required), and Attachment Notes.
-  - "Performed by" is displayed read-only as the current user.
-  - Action list table on desktop; responsive stacked cards on mobile.
+  - Inline Add Action form with fields: Action Date/Time (defaults to now, allows future date for Planned), Status select (Planned or Completed), Assignee select (active staff only), Description textarea, Result textarea, Follow-Up Required checkbox, Follow-Up Note textarea (conditionally visible and required), and Attachment Notes.
+  - "Performed by" is displayed read-only as the creator.
+  - Action list table displays: Action Date, Description, Result, Status badge, Assignee, Performed By, and Completed By (when completed).
   - Action status controls: Edit, Complete (requires non-empty Result), and Cancel (with inline confirmation dialog).
   - Save button disables and renders "Saving..." while submitting to prevent double clicks.
 - **Requester Mode**:
   - Titled "Work Performed by IT".
   - Clean, read-only list without any creation, editing, or status transition buttons.
-  - Displays Action Date, Description, Result, Performed By, and Follow-Up indicator.
+  - Displays Action Date, Description, Result, Assignee, Performed By, Completed By (when completed), and Follow-Up indicator.
 
 ### 3.5. Ticket Status Controls and Requester Reopen
 - On `StaffTicketDetail`:
   - Status dropdown dynamically populated from server `allowedTransitions`.
   - Explanatory alert banner displayed when the Resolution Gate is unsatisfied, explicitly stating missing conditions.
   - Status change requires confirmation modal.
+  - Status History card renders directly below the status control box.
   - HTTP 409 Conflict triggers a clear "Record changed by another user" reload banner.
 - On `TicketDetail` (Requester):
   - Tickets in `RESOLVED` or `CLOSED` status render a prominent "Reopen Ticket" button.
-  - Clicking Reopen opens a modal to supply an optional reason, transitioning the ticket to `REOPENED` and updating the Status History card.
+  - Clicking Reopen opens a modal to supply an optional reason, transitioning the ticket to `REOPENED`, incrementing version, and recording history.
 
 ---
 
@@ -141,11 +142,11 @@ Screenshots will be captured and stored under `artifacts/lab-04/screenshots/`:
 
 | Part | Screen Target and State | Viewports to Capture | Storage Path |
 | :--- | :--- | :--- | :--- |
-| **Part 5** | Staff Dashboard: Normal Operational State | 1280px, 768px, 375px | `artifacts/lab-04/screenshots/staff-dashboard/normal/` |
+| **Part 5** | Staff Dashboard: Normal Operational State (6 Cards) | 1280px, 768px, 375px | `artifacts/lab-04/screenshots/staff-dashboard/normal/` |
 | **Part 5** | Staff Dashboard: Loading Skeleton State | 1280px | `artifacts/lab-04/screenshots/staff-dashboard/loading.png` |
 | **Part 5** | Staff Dashboard: Empty Queue State | 1280px | `artifacts/lab-04/screenshots/staff-dashboard/empty.png` |
 | **Part 5** | Staff Dashboard: Safe Failure with Retry | 1280px | `artifacts/lab-04/screenshots/staff-dashboard/failure.png` |
-| **Part 6** | Actions Taken: List, Create Form, View/Edit | 1280px, 768px, 375px | `artifacts/lab-04/screenshots/actions-taken/` |
+| **Part 6** | Actions Taken: List, Create Form, View/Edit, Completed By | 1280px, 768px, 375px | `artifacts/lab-04/screenshots/actions-taken/` |
 | **Part 7** | Ticket Workflow: Status Dropdown & Resolution Gate | 1280px | `artifacts/lab-04/screenshots/ticket-workflow/` |
 | **Part 8** | Requester Dashboard: Normal, Attention & Empty | 1280px, 768px, 375px | `artifacts/lab-04/screenshots/requester-dashboard/` |
 | **Part 8** | Final Regression: Login, Queue, Detail, Admin Users | 1280px | `artifacts/lab-04/screenshots/regression/` |

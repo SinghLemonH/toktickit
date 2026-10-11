@@ -144,8 +144,9 @@ Edits a planned action, completes it, or cancels it.
 }
 ```
 - **Rules**:
+  - Ticket Lock Check: If parent ticket is Closed or Cancelled, rejected with HTTP 400 `TICKET_LOCKED`.
   - Updatable fields: `actionAt`, `description`, `result`, `status`, `followUpRequired`, `followUpNote`, `attachmentNotes`, `assigneeId`.
-  - Updating `actionAt`: If transitioning to or remaining `COMPLETED`, `actionAt` must satisfy the 5-minute clock-skew bound. This allows early completion of scheduled maintenance by bringing the date back to now.
+  - Completing Future Planned Action: If transitioning to `COMPLETED` and `actionAt` is omitted by the client, and the stored `actionAt` is currently in the future, the server automatically updates `actionAt` to the current timestamp (`new Date()`). If client explicitly sends `actionAt`, it must satisfy the 5-minute clock-skew bound.
   - Once status is `COMPLETED` or `CANCELLED`, the action is immutable. Attempts to edit return HTTP 400 `ACTION_IMMUTABLE`.
   - Transitioning to `COMPLETED` sets `completedById = req.user.id` and requires a non-empty `result`.
   - Requires integer `expectedVersion`. Returns HTTP 409 `STALE_UPDATE` if version mismatch.
@@ -217,14 +218,16 @@ Allows Requesters to reopen their own Resolved or Closed tickets.
 - **Request Body**:
 ```json
 {
-  "reason": "The issue reoccurred after rebooting."
+  "reason": "The issue reoccurred after rebooting.",
+  "expectedVersion": 4
 }
 ```
 - **Behavior**:
   - Permitted only from statuses `RESOLVED` or `CLOSED`.
-  - Transitions status to `REOPENED`.
+  - Transitions status to `REOPENED` and increments ticket `version`.
+  - If `expectedVersion` is supplied and does not match database version, returns HTTP 409 `STALE_UPDATE`.
   - Clears `isProblemResolvedIndicated` flag.
-  - Records an entry in `TicketStatusHistory`.
+  - Records an entry in `TicketStatusHistory` storing the optional `reason`.
 - **Response 200 OK**: Returns updated Ticket.
 
 ### 3.5. GET /api/tickets/:id/history
@@ -238,6 +241,7 @@ Retrieves the append-only status audit trail.
     "id": 1,
     "fromStatus": "NEW",
     "toStatus": "IN_PROGRESS",
+    "reason": null,
     "changedAt": "2026-10-11T08:00:00.000Z",
     "changedBy": {
       "id": 4,

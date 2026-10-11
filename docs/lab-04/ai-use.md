@@ -14,7 +14,7 @@
 
 ## 2. Selected Key Prompts Portfolio
 
-The following 6 prompts document senior prompt engineering interactions during Sprint 4:
+The following prompts document senior prompt engineering interactions during Sprint 4 (paraphrased for formal clarity):
 
 | # | Stage / Role | Senior Prompt Context and Instruction | Invariants and Spec References | Outcome and Modifications |
 | :---: | :--- | :--- | :--- | :--- |
@@ -23,7 +23,7 @@ The following 6 prompts document senior prompt engineering interactions during S
 | **3** | Database / Data Architect | "Act as a PostgreSQL and Prisma Data Architect. Design the `ActionTaken` and `TicketStatusHistory` models with optimistic concurrency support. Ensure backward compatibility with Lab 1, 2, and 3 data. Include rollback SQL script and composite indexes." | Spec Sec 7; `Ticket.version @default(0)`; composite indexes; additive migrations; rollback SQL. | Added composite indexes `(ticketId, actionAt)` and `(assigneeId, status)`; planned safe additive SQL migration and rollback script. |
 | **4** | Specification / Technical Lead | "Act as a Lead Software Engineer. Consolidate and refine the Sprint 4 engineering contract across `specification.md`, `api-spec.md`, `ui-spec.md`, and `tests.md`. Ensure strict alignment with the course rubric and existing Lab 2 and 3 error conventions." | Standard error format `{ error: { code, message, fields? } }`; parity query filters; zero em dashes. | Unified contracts across all 4 documents; harmonized error payloads with Lab 2 and Lab 3 conventions. |
 | **5** | Domain Workflow / Systems Architect | "Act as a Domain Modeler. Formulate the Ticket status transition matrix and server-side Resolution Gate. Ensure transitions to Resolved strictly require an assigned owner, at least one completed Action Taken, and zero planned Actions Taken. Guard ticket assignments against removing owners on resolved tickets." | BR-11, BR-12, BR-17, BR-18; 400 `RESOLUTION_GATE_NOT_MET`; 400 `TICKET_LOCKED`. | Specified centralized `ticketWorkflow.ts` service with atomic database transactions and version increments. |
-| **6** | Test Automation / QA Architect | "Act as a Test Automation Architect. Formulate a comprehensive test traceability matrix mapping AC-01 through AC-20. Ensure test paths align with vitest configuration, include pure function unit tests, accessibility keyboard tests, and document impacts on earlier Lab 3 tests." | AC-01..20; Handout Sec 10; vitest file parallelism disabled; Playwright E2E. | Mapped all criteria to executable test files under `server/tests/lab-04/` and `client/tests/lab-04/`; documented Lab 3 test contract evolution. |
+| **6** | Peer Review & Critique / Claude Advisor | "Critique the draft contracts against all rubric criteria. Identify any discrepancies in error payloads, missing dashboard states, unhandled concurrency edge cases on ticket assignments, future action dating, and test runner directory alignment." | Handout Sec 4..12; Answer Part 1..9; theme.css token inspection; vitest config. | Caught assignment bypass on resolved tickets, future dating on planned vs completed actions, completedById attribution, and unassigned dashboard card gap. |
 
 ---
 
