@@ -18,7 +18,7 @@ The primary Ticket Owner coordinates the Ticket overall, while different IT Staf
 - Actions Taken on Tickets: list, create, view/edit, complete, and cancel, with assignees selected from active IT Staff or Administrators.
 - Read-only Actions Taken presentation for Requesters on Tickets they own.
 - Final Ticket status-transition matrix with role-based enforcement, server-side resolution gate, Requester reopen capability, and append-only status audit history.
-- Optimistic concurrency protection (`expectedVersion`) for Ticket status updates and Action Taken edits to prevent accidental overwrites.
+- Optimistic concurrency protection (`expectedVersion`) for Ticket status updates, ticket assignments, and Action Taken edits to prevent accidental overwrites.
 - Role-based Dashboards for Requesters and IT Staff (Administrators reuse the Staff Dashboard with additional user-account statistics).
 - Drill-down navigation: every metric card links to a filtered view or detail screen with matching query parameters.
 - Dashboard set as the primary landing page and first navigation item for authenticated users.
@@ -34,9 +34,9 @@ The primary Ticket Owner coordinates the Ticket overall, while different IT Staf
 - Hard deletion of Actions Taken or status history records.
 - Any feature not specified in this engineering contract.
 
-## 4. Roles and Authorization Matrix
+## 4. Functional Requirements
 
-### 4.1. Authorization Matrix
+### 4.1. Role Authorization Matrix
 | Operational Capability | Requester | IT Staff | Administrator |
 | :--- | :---: | :---: | :---: |
 | View own Dashboard (`/dashboard`) | Allowed | Not Allowed (Forbidden) | Not Allowed (Forbidden) |
@@ -46,54 +46,47 @@ The primary Ticket Owner coordinates the Ticket overall, while different IT Staf
 | Create Action Taken on Ticket | Not Allowed (403) | Allowed | Allowed |
 | Edit/Complete/Cancel Action Taken | Not Allowed (403) | Allowed | Allowed |
 | Change Ticket Status via Queue/Detail | Not Allowed (403) | Allowed (Matrix & Gate) | Allowed (Matrix & Gate) |
+| Assign/Reassign Ticket Owner | Not Allowed (403) | Allowed (Active Status only) | Allowed (Active Status only) |
 | Reopen own Resolved or Closed Ticket | Allowed (Reopen only) | Allowed (Full Matrix) | Allowed (Full Matrix) |
 | View Status History on owned Ticket | Allowed | Allowed | Allowed |
-| View Internal Notes | Not Allowed (403/Hidden) | Allowed | Allowed |
+| View Internal Notes | Not Allowed (Hidden) | Allowed | Allowed |
 | User Management (`/admin/users`) | Not Allowed (Forbidden) | Not Allowed (Forbidden) | Allowed |
 
-## 5. Functional Requirements
-
-### Actions Taken
-- **FR-01**: The system shall allow IT Staff and Administrators to create an Action Taken on any active Ticket with Action Date/Time, Description, Result, Follow-Up Required flag, Follow-up Note, Attachment Notes, and an Assignee.
+### 4.2. Functional Requirement Statements
+- **FR-01**: The system shall allow IT Staff and Administrators to create an Action Taken on any active Ticket with Action Date/Time, Description, Result, Follow-Up Required flag, Follow-up Note, Attachment Notes, and an Assignee. An Action may be created directly as `COMPLETED` if a non-empty Result is provided.
 - **FR-02**: The system shall record the authenticated user as "Performed by" automatically; client-supplied values for this field shall be ignored.
 - **FR-03**: The system shall list all Actions Taken of a Ticket in stable chronological order for IT Staff and Administrators.
 - **FR-04**: The system shall allow IT Staff and Administrators to edit a Planned Action Taken and mark it Completed or Cancelled.
 - **FR-05**: The system shall present all Actions Taken on a Ticket to the owning Requester in read-only mode, hiding all creation and modification controls.
-
-### Ticket Lifecycle and Workflow
 - **FR-06**: The system shall permit Ticket status transitions only along the authorized status-transition matrix and only for roles permitted for that specific transition.
 - **FR-07**: The system shall reject transitions to Resolved unless the Resolution Gate (BR-11) is satisfied, even when client interfaces are bypassed.
 - **FR-08**: The system shall allow a Requester to reopen their own Ticket if it is currently Resolved or Closed.
 - **FR-09**: The system shall append an immutable audit log entry in `TicketStatusHistory` for every successful status transition.
-- **FR-10**: The system shall detect stale Ticket status updates and Action edits using `expectedVersion`, returning HTTP 409 Conflict rather than overwriting newer records.
+- **FR-10**: The system shall detect stale Ticket status updates, ticket reassignments, and Action edits using `expectedVersion`, returning HTTP 409 Conflict rather than overwriting newer records.
 - **FR-11**: The Requester "problem appears resolved" indication shall remain advisory and shall not directly modify Ticket status.
-
-### Role Dashboards
-- **FR-12**: The system shall provide a Requester Dashboard summarizing metrics, attention items (Waiting for Requester), and recent tickets strictly owned by the authenticated Requester.
-- **FR-13**: The system shall provide an IT Staff Dashboard summarizing operational queue workload and the current user's assigned work.
+- **FR-12**: The system shall provide a Requester Dashboard summarizing metrics, attention items (Waiting for Requester), recently updated tickets, and resolved tickets strictly owned by the authenticated Requester.
+- **FR-13**: The system shall provide an IT Staff Dashboard summarizing operational queue workload and the current user's assigned active work.
 - **FR-14**: The system shall provide Administrators with the IT Staff Dashboard supplemented with concise user-account counts.
 - **FR-15**: Every dashboard count and card shall provide drill-down links to the Ticket Queue or My Tickets with matching filters pre-applied.
 - **FR-16**: The Ticket Queue and My Tickets screens shall accept URL query parameters matching dashboard metrics (`statusGroup`, `currentStatus`, `status`, `itPriority`, `assignedTo`).
-
-### System Hardening and Accessibility
 - **FR-17**: All Lab 1, 2, and 3 screens and APIs shall remain fully operational for permitted roles without regression.
 - **FR-18**: Every interface shall present consistent loading, validation, success, empty, forbidden, conflict, and safe failure feedback.
 - **FR-19**: Repeated form submissions shall be prevented by disabling submit buttons during active network requests.
 - **FR-20**: Authenticated users navigating to unauthorized routes shall receive a clear Forbidden page rather than an unexpected login redirect.
 
-## 6. Business Rules
+## 5. Business Rules
 
 ### Actions Taken Rules
 - **BR-01**: An Action Taken belongs to exactly one Ticket and cannot be moved or re-linked to another Ticket.
 - **BR-02**: The Ticket Owner coordinates the Ticket, but an Action Taken may be performed by or assigned to any active IT Staff member or Administrator.
-- **BR-03**: Only IT Staff and Administrators may create or modify Actions Taken. Requesters may only read Actions on Tickets they own.
+- **BR-03**: Only IT Staff and Administrators may create or modify Actions Taken. Requesters may only read Actions on Tickets they own. Attempting to access Actions on another user's Ticket returns HTTP 404.
 - **BR-04**: "Performed by" is permanently bound to the authenticated creator upon creation and cannot be updated.
-- **BR-05**: The assignee must be an active IT Staff or Administrator user; if omitted, it defaults to the creator. Non-staff or inactive assignees shall be rejected.
+- **BR-05**: The assignee must be an active IT Staff or Administrator user; if omitted, it defaults to the creator. Non-staff or inactive assignees shall be rejected with HTTP 400.
 - **BR-06**: Action Description is mandatory (1 to 2000 characters after trimming). Result is optional while status is Planned (up to 2000 characters) and becomes mandatory when transitioning to Completed. Attachment Notes are optional (up to 500 characters).
 - **BR-07**: When Follow-Up Required is true, Follow-up Note is mandatory (1 to 1000 characters). When false, any provided Follow-up Note is cleared to null.
-- **BR-08**: Action Date/Time defaults to the current timestamp. It cannot be earlier than Ticket creation time (evaluated at minute precision) and cannot be more than 5 minutes in the future.
-- **BR-09**: Action status transitions strictly from `PLANNED` to `COMPLETED` or `PLANNED` to `CANCELLED`. Once Completed or Cancelled, the record is read-only and cannot be altered or deleted.
-- **BR-10**: Actions Taken cannot be added, edited, or cancelled on Tickets with status `CLOSED` or `CANCELLED`.
+- **BR-08**: Action Date/Time defaults to the current timestamp. For `COMPLETED` actions, it cannot precede Ticket creation time (evaluated at minute precision) and cannot be more than 5 minutes in the future. For `PLANNED` actions, future dates beyond 5 minutes are allowed to support work scheduling.
+- **BR-09**: Action status transitions strictly from `PLANNED` to `COMPLETED` or `PLANNED` to `CANCELLED`. Once an action is in `COMPLETED` or `CANCELLED` status, it is immutable; any modification attempt is rejected with HTTP 400 `ACTION_IMMUTABLE`.
+- **BR-10**: Actions Taken cannot be added, edited, or cancelled on Tickets with status `CLOSED` or `CANCELLED`. Attempts return HTTP 400 `TICKET_LOCKED`.
 
 ### Ticket Lifecycle and Resolution Rules
 - **BR-11 (Resolution Gate)**: A Ticket may transition to `RESOLVED` only when all three conditions are satisfied:
@@ -109,24 +102,43 @@ The primary Ticket Owner coordinates the Ticket overall, while different IT Staf
   - `CLOSED` -> `REOPENED` (Requester or Staff)
   - `REOPENED` -> `IN_PROGRESS` (Staff), `CANCELLED` (Staff)
   - `CANCELLED` -> Terminal state (no further transitions permitted).
-  - Note: Legacy `PENDING` tickets are treated as a valid transition source to `OPEN` or `CANCELLED` (Staff).
+  - Legacy `PENDING` -> `OPEN` (Staff), `CANCELLED` (Staff).
 - **BR-13**: Requesters are authorized only to trigger the `REOPENED` transition on their own Tickets currently in `RESOLVED` or `CLOSED` status.
 - **BR-14**: Reopening a Ticket immediately clears any active "problem appears resolved" flag.
 - **BR-15**: The Requester indication that the problem appears resolved is purely advisory and does not change Ticket status.
 - **BR-16**: Every successful status transition appends a permanent record in `TicketStatusHistory` recording from-status, to-status, changed-by user, and timestamp.
-- **BR-17**: Status transitions and Action updates must supply `expectedVersion`. If the record has been updated concurrently (`version != expectedVersion`), the update is rejected with HTTP 409 `STALE_UPDATE`.
+- **BR-17**: Status transitions, assignments, and Action updates must supply `expectedVersion`. If the record has been updated concurrently (`version != expectedVersion`), the update is rejected with HTTP 409 `STALE_UPDATE`.
+- **BR-18**: Assigning or reassigning a ticket owner (`PATCH /api/staff/tickets/:id/assign`) is prohibited on terminal or resolved tickets (`RESOLVED`, `CLOSED`, `CANCELLED`) to prevent bypassing the Resolution Gate owner requirement.
 
 ### Dashboard Metric Rules
-- **BR-18**: "Active" tickets for dashboard aggregation comprise statuses: `NEW`, `OPEN`, `IN_PROGRESS`, `WAITING_FOR_REQUESTER`, `REOPENED`, and legacy `PENDING`.
-- **BR-19**: "Recent" tickets for dashboard activity lists represent records updated within the rolling last 7 days (7 x 24 hours) from request time.
-- **BR-20**: All dashboard metrics must be computed server-side directly from database records. In-memory array filtering of entire collections is prohibited.
-- **BR-21**: Requester Dashboard metrics strictly scope queries to the authenticated user ID (`requesterId = req.user.id`).
-- **BR-22**: Zero-state dashboard handling: users with no tickets or assignments must receive zero counts and empty arrays with HTTP 200, never errors.
-- **BR-23**: Adding or updating an Action Taken updates the parent Ticket's `updatedAt` timestamp, ensuring dashboard recently-updated queues stay fresh.
-- **BR-24**: Dashboard recent activity lists are capped at a maximum of 5 items, sorted in descending order of update time.
-- **BR-25**: Database seeds must be idempotent, safely re-runnable, and provide realistic records across all statuses and ownership conditions.
+- **BR-19**: "Active" tickets for dashboard aggregation comprise statuses: `NEW`, `OPEN`, `IN_PROGRESS`, `WAITING_FOR_REQUESTER`, `REOPENED`, and legacy `PENDING`.
+- **BR-20**: "Recent" tickets for dashboard activity lists represent records updated within the rolling last 7 days (7 x 24 hours) from request time.
+- **BR-21**: All dashboard metrics must be computed server-side directly from database records. In-memory array filtering of entire collections is prohibited.
+- **BR-22**: Requester Dashboard metrics strictly scope queries to the authenticated user ID (`requesterId = req.user.id`).
+- **BR-23**: Zero-state dashboard handling: users with no tickets or assignments must receive zero counts and empty arrays with HTTP 200, never errors.
+- **BR-24**: Adding or updating an Action Taken updates the parent Ticket's `updatedAt` timestamp, ensuring dashboard recently-updated queues stay fresh.
+- **BR-25**: Dashboard recent activity lists are capped at a maximum of 5 items, sorted in descending order of update time.
+- **BR-26**: Database seeds must be idempotent, safely re-runnable, and provide realistic records across all statuses and ownership conditions with staggered creation and update timestamps extending past 7 days.
 
-## 7. Data Changes and Architectural Decisions
+## 6. UI Specification Summary
+
+- **App Shell and Navigation**: `/dashboard` becomes the primary landing page upon login. The navigation bar displays role-appropriate links matching the real application shell:
+  - Requester: Dashboard, My Tickets, Create Ticket, User Badge, Logout.
+  - IT Staff: Dashboard, Ticket Queue, User Badge, Logout.
+  - Administrator: Dashboard, Ticket Queue, User Management, User Badge, Logout.
+- **Mobile Menu**: Fully role-aware, matching desktop navigation with keyboard trap and accessible toggle controls.
+- **Actions Taken UI**:
+  - Located on Ticket Detail between summary metadata and Public Comments.
+  - IT Staff sees an inline "+ Add Action" form, action rows with status badges, and edit/complete/cancel options.
+  - Requester sees a clean read-only list titled "Work Performed by IT".
+  - Field errors render directly below the corresponding input with `aria-describedby` links.
+- **Status Control**:
+  - Displays only permitted transitions dynamically.
+  - Shows clear explanatory alert banners if the Resolution Gate is not yet satisfied.
+  - Provides confirmation before saving status transitions.
+- **Visual Design Tokens**: Strictly uses tokens from `client/src/theme.css` (`--bs-primary`, `--bs-info`, `--zg-pale-green`, `--zg-readonly-bg`, `--zg-shadow-soft`).
+
+## 7. Data Changes
 
 ### 7.1. Database Models and Indexes
 - **Model `ActionTaken`**:
@@ -139,33 +151,32 @@ The primary Ticket Owner coordinates the Ticket overall, while different IT Staf
 - **Model `Ticket` Evolution**:
   - Added field: `version Int @default(0)` to support atomic optimistic locking.
 
-### 7.2. Database Design Justifications (Mandatory)
-1. **Decision 1: Append-Only Status Audit Table vs In-Row Timestamps**:
-   - Rather than storing multiple transition timestamps directly on the Ticket table, a dedicated `TicketStatusHistory` table provides an immutable audit trail. This enables precise historical tracking, role attribution, and compliance without cluttering the core operational entity.
-2. **Decision 2: Optimistic Version-Based Concurrency Control**:
-   - Ticket status changes and action updates employ integer `version` fields with atomic conditional updates (`updateMany where id and version`). This avoids heavy database row locks while completely preventing lost-update anomalies during concurrent staff operations.
-
-### 7.3. Migration, Backfill, and Rollback Strategy
-- **Additive Migration**: The migration creates `ActionTaken`, `TicketStatusHistory`, and adds `version` (default 0) to `Ticket`. No existing tables or columns are dropped or renamed.
+### 7.2. Migration and Backfill Decisions
+- **Additive Migration**: Migration `20261011_lab4_actions_taken_and_workflow` creates `ActionTaken`, `TicketStatusHistory`, and adds `version` (default 0) to `Ticket`. No existing tables or columns are dropped or renamed.
 - **Legacy Records**: Existing tickets created in Labs 1 to 3 start with `version = 0`, zero Actions Taken, and no status history. They remain fully operational. If a staff member resolves a legacy ticket, they must first record a Completed Action Taken to satisfy the Resolution Gate.
 - **Rollback SQL (`server/prisma/rollback-lab4.sql`)**: Drops `ActionTaken` and `TicketStatusHistory` tables, drops `ActionStatus` enum, and removes the `version` column from `Ticket`. Verification tests verify row counts before migration, after migration, and after rollback.
+- **Seed Strategy**: The seed script populates 9 demo tickets with staggered timestamps (some within 7 days, some older than 7 days) to demonstrate realistic recent vs older dashboard buckets.
 
-## 8. UI Specification Summary
+## 8. API Contract
 
-- **App Shell and Navigation**: `/dashboard` becomes the primary landing page upon login. The navigation bar displays role-appropriate links:
-  - Requester: Dashboard, My Tickets, Create Ticket, Profile / Logout.
-  - IT Staff: Dashboard, Ticket Queue, Profile / Logout.
-  - Administrator: Dashboard, Ticket Queue, User Management, Profile / Logout.
-- **Mobile Menu**: Fully role-aware, matching desktop navigation with keyboard trap and accessible toggle controls.
-- **Actions Taken UI**:
-  - Located on Ticket Detail between summary metadata and Public Comments.
-  - IT Staff sees an inline "+ Add Action" form, action rows with status badges, and edit/complete/cancel options.
-  - Requester sees a clean read-only list titled "Work Performed by IT".
-  - Field errors render directly below the corresponding input with `aria-describedby` links.
-- **Status Control**:
-  - Displays only permitted transitions dynamically.
-  - Shows clear explanatory alert banners if the Resolution Gate is not yet satisfied.
-  - Provides inline confirmation for status changes.
+Base path: `/api`. Error responses follow standard `{ error: { code, message, fields? } }`.
+
+### 8.1. Actions Taken Endpoints
+- `GET /api/tickets/:id/actions`: Returns actions array. Staff/Admin access all; Requesters access owned tickets (other tickets return 404).
+- `POST /api/staff/tickets/:id/actions`: Creates action (defaults to Planned, or Completed if result provided). Replay with same `clientRequestId` returns HTTP 200 with existing row.
+- `PATCH /api/staff/tickets/:id/actions/:actionId`: Edits Planned action, completes it, or cancels it. Updatable fields: `description`, `result`, `status`, `followUpRequired`, `followUpNote`, `attachmentNotes`, `assigneeId`. Requires `expectedVersion`. Modifying Completed/Cancelled action returns 400 `ACTION_IMMUTABLE`.
+
+### 8.2. Ticket Workflow Endpoints
+- `GET /api/tickets/:id`: Returns ticket details, `version`, `allowedTransitions`, and `resolutionGate: { ok, reasons }`.
+- `PATCH /api/staff/tickets/:id/status`: Transitions status with `expectedVersion`. Enforces matrix and Resolution Gate (returns 400 `RESOLUTION_GATE_NOT_MET` with reasons).
+- `PATCH /api/staff/tickets/:id/assign`: Updates owner and increments `version`. Blocked on `RESOLVED`/`CLOSED`/`CANCELLED` tickets.
+- `POST /api/tickets/:id/reopen`: Reopens resolved or closed ticket for owning requester. Clears advisory resolved flag.
+- `GET /api/tickets/:id/history`: Returns audit trail sorted by `changedAt asc`.
+
+### 8.3. Dashboard Endpoints
+- `GET /api/dashboard/requester`: Returns `myOpenTickets`, `waitingForRequester`, `inProgress`, `resolved`, `closed`, `attentionTickets`, and `recentTickets`.
+- `GET /api/dashboard/staff`: Returns `newTickets`, `openTickets`, `inProgress`, `waitingForRequester`, `myAssigned` (active only), `unassigned` (active only), `recentTickets` (recent operational tickets), and `userCounts` (Admin only).
+- Query filtering support: `GET /api/tickets` and `GET /api/staff/tickets` accept `statusGroup=active` (matching BR-19) and `itPriority=none`.
 
 ## 9. Acceptance Criteria
 
@@ -178,7 +189,7 @@ The primary Ticket Owner coordinates the Ticket overall, while different IT Staf
 - **AC-07**: Given a Ticket missing an owner, completed actions, or containing planned actions, when an IT Staff attempts to transition it to Resolved, the system rejects it with HTTP 400 `RESOLUTION_GATE_NOT_MET` and lists the missing gate conditions.
 - **AC-08**: Given a Ticket satisfying all Resolution Gate criteria, when an IT Staff transitions it to Resolved, the update succeeds and records an entry in `TicketStatusHistory`.
 - **AC-09**: Given any user, when attempting a status transition not allowed by the transition matrix, the server rejects the request with HTTP 400 `INVALID_STATUS_TRANSITION`.
-- **AC-10**: Given a status update or action edit with an outdated `expectedVersion`, the server rejects the update with HTTP 409 `STALE_UPDATE`.
+- **AC-10**: Given a status update, assignment, or action edit with an outdated `expectedVersion`, the server rejects the update with HTTP 409 `STALE_UPDATE`.
 - **AC-11**: Given a Requester marking "problem appears resolved", the flag is updated without altering the Ticket status.
 - **AC-12**: Given multiple status transitions on a Ticket, the history endpoint returns entries in ascending chronological order.
 - **AC-13**: Given an IT Staff member, the staff dashboard metrics accurately reflect authoritative database counts and drill-down links produce matching row counts.
@@ -209,3 +220,5 @@ The primary Ticket Owner coordinates the Ticket overall, while different IT Staf
 2. **Resolution Gate Enforcement on Legacy Tickets**: Existing tickets that do not have Actions Taken cannot bypass the Resolution Gate. To resolve a legacy ticket, staff must record at least one Completed Action Taken.
 3. **Information Hiding via 404**: In alignment with Lab 3 security conventions, when a Requester queries actions, comments, or details of a Ticket they do not own, the system responds with HTTP 404 Not Found rather than 403 Forbidden to prevent ticket existence enumeration.
 4. **Idempotency Strategy**: Creating an Action Taken uses a client-generated UUID `clientRequestId`. Submitting the same request again returns HTTP 200 with the existing record rather than creating a duplicate or failing.
+5. **Performed by vs Assignee Distinction**: `performedBy` permanently denotes the authenticated creator who originally logged the action. The `assignee` denotes the technician currently assigned to carry out or follow up on the work. When an action is completed, the user performing completion is tracked via `updatedAt` audit logging.
+6. **Future Dating on Planned Actions**: To allow technicians to plan forward-looking maintenance, `PLANNED` actions may specify future dates. The strict clock-skew restriction (not more than 5 minutes in the future) applies exclusively when marking or creating an action as `COMPLETED`.

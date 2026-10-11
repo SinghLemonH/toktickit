@@ -6,22 +6,22 @@ This document defines user interface layouts, design tokens, responsive behavior
 
 All screens strictly adhere to the established Zen Green palette and typography tokens defined in `client/src/theme.css`:
 
-### 1.1. Color Palette Tokens
-- **Primary Brand**: `#006B3C` (`--color-primary`)
-- **Primary Dark / Hover**: `#00522E` (`--color-primary-dark`)
-- **Light Tint Background**: `#E8F5E9` (`--color-primary-light`)
-- **Text Primary**: `#1F2937` (`--color-text`)
-- **Text Muted**: `#4B5563` (`--color-text-muted`)
-- **Border Neutral**: `#E5E7EB` (`--color-border`)
-- **Surface Card**: `#FFFFFF` (`--color-surface`)
-- **Danger / Error**: `#DC2626` (`--color-danger`)
-- **Warning / Internal Note**: `#D97706` (`--color-warning`)
+### 1.1. Color and Token Palette
+- **Primary Brand**: `--bs-primary: #006b3c` (Primary actions, active navigation items)
+- **Secondary Accent**: `--bs-info: #0b7a46` (Repurposed as secondary brand green, link color)
+- **Background Tint**: `--zg-pale-green: #eaf6ef` (Completed action badges, soft success highlights)
+- **Read-Only Input Background**: `--zg-readonly-bg: #f3f5f4` (Un-editable fields, disabled inputs)
+- **Body Background**: `--bs-body-bg: #f5f7f6` (Application canvas background)
+- **Body Text**: `--bs-body-color: #1f2e28` (High-contrast typography)
+- **Border Neutral**: `--bs-border-color: #dde5e1` (Card borders, dividers)
+- **Card Shadow**: `--zg-shadow-soft: 0 1px 2px rgba(31, 46, 40, 0.04), 0 8px 24px rgba(31, 46, 40, 0.06)`
+- **Interactive Transition**: `--zg-transition: 150ms ease`
 
 ### 1.2. Status Badges and Labels
 Status badges must never rely on color alone. Each badge displays explicit text:
-- **Planned Action**: Secondary outline with text label "Planned".
-- **Completed Action**: Pale green solid badge with text label "Completed".
-- **Cancelled Action**: Muted gray badge with text label "Cancelled".
+- **Planned Action**: Secondary outline badge with text label "Planned".
+- **Completed Action**: Solid pale green badge (`--zg-pale-green`) with text label "Completed".
+- **Cancelled Action**: Muted neutral badge with text label "Cancelled".
 - **Follow-Up Indicator**: Orange accent badge with flag icon and text "Follow-Up".
 
 ### 1.3. Private vs Shared Content Distinction
@@ -55,9 +55,10 @@ Matching the real `AppShell` and `MobileMenu` components:
 - **Welcome Banner**: Displays staff member greeting and queue overview summary.
 - **Metric Cards Row**:
   - 5 key operational cards: New, Open, In Progress, Waiting for Requester, My Assigned.
+  - Counts for `myAssigned` and `unassigned` aggregate active tickets only.
   - Each card shows large numerical counts and a clickable "View" drill-down link leading to `/staff/queue` with the corresponding filter parameter pre-applied.
 - **Main Section (2-Column Grid on Desktop)**:
-  - Left Column (70%): "My Recent Tickets" displaying up to 5 recently updated records with Ticket No, Title, Status badge, and timestamp.
+  - Left Column (70%): "Recent Operational Tickets" displaying up to 5 recently updated records with Ticket No, Title, Status badge, and timestamp.
   - Right Column (30%): Quick Actions panel with direct buttons for "Search Tickets" and "My Queue" (Staff do not have Create Ticket).
 - **Administrator Enhancement**:
   - Administrators receive an additional metric section displaying Total Users, Active Users, and Inactive Users with a link to User Management.
@@ -84,7 +85,7 @@ Matching the real `AppShell` and `MobileMenu` components:
 Located between the Ticket Summary metadata card and the Comments section:
 - **IT Staff Mode**:
   - Header with "+ Add Action" button.
-  - Inline Add Action form with fields: Action Date/Time (defaults to now), Assignee select (active staff only), Description textarea, Result textarea, Follow-Up Required checkbox, Follow-Up Note textarea (conditionally visible and required), and Attachment Notes.
+  - Inline Add Action form with fields: Action Date/Time (defaults to now, allows future date for Planned), Assignee select (active staff only), Description textarea, Result textarea, Follow-Up Required checkbox, Follow-Up Note textarea (conditionally visible and required), and Attachment Notes.
   - "Performed by" is displayed read-only as the current user.
   - Action list table on desktop; responsive stacked cards on mobile.
   - Action status controls: Edit, Complete (requires non-empty Result), and Cancel (with inline confirmation dialog).
@@ -118,28 +119,34 @@ Located between the Ticket Summary metadata card and the Comments section:
 
 ## 5. Visual and Accessibility Quality Checklist
 
-The following checklist must be fully verified and documented:
+The following checklist must be fully verified and recorded with evidence before final release:
 
 | Check Item | Inspection Criteria | Desktop (1280px) | Tablet (768px) | Mobile (375px) |
 | :--- | :--- | :---: | :---: | :---: |
-| **1. Design Consistency** | Consistent Zen Green tokens, font hierarchy, card borders | Verified | Verified | Verified |
-| **2. Role Navigation** | Links strictly adapt to role; unauthorized paths blocked | Verified | Verified | Verified |
-| **3. Non-Color Badges** | All status, priority, and action badges carry text labels | Verified | Verified | Verified |
-| **4. Read-Only Visuals** | Read-only fields use neutral background with standard text | Verified | Verified | Verified |
-| **5. Validation Messages** | Errors render beneath inputs with aria-describedby binding | Verified | Verified | Verified |
-| **6. Keyboard Focus** | Interactive elements show visible 2px focus ring; focus trap active | Verified | Verified | Verified |
-| **7. No Clipping / Overlap** | Text wraps cleanly; modals fit viewport without clipping | Verified | Verified | Verified |
-| **8. Zero Horizontal Scroll** | `scrollWidth <= innerWidth` (zero page horizontal overflow) | Verified | Verified | Verified |
-| **9. Safe Feedback** | Skeletons on loading, clear empty states, retry on failure | Verified | Verified | Verified |
+| **1. Design Consistency** | Consistent Zen Green tokens, font hierarchy, card borders | Pending | Pending | Pending |
+| **2. Role Navigation** | Links strictly adapt to role; unauthorized paths blocked | Pending | Pending | Pending |
+| **3. Non-Color Badges** | All status, priority, and action badges carry text labels | Pending | Pending | Pending |
+| **4. Read-Only Visuals** | Read-only fields use `--zg-readonly-bg` with standard text | Pending | Pending | Pending |
+| **5. Validation Messages** | Errors render beneath inputs with aria-describedby binding | Pending | Pending | Pending |
+| **6. Keyboard Focus** | Interactive elements show visible focus ring; focus trap active | Pending | Pending | Pending |
+| **7. No Clipping / Overlap** | Text wraps cleanly; modals fit viewport without clipping | Pending | Pending | Pending |
+| **8. Zero Horizontal Scroll** | `scrollWidth <= innerWidth` (zero page horizontal overflow) | Pending | Pending | Pending |
+| **9. Safe Feedback** | Skeletons on loading, clear empty states, retry on failure | Pending | Pending | Pending |
 
 ---
 
-## 6. Screenshot Evidence Matrix for Part 9
+## 6. Screenshot Evidence Matrix for Submission Report
 
 Screenshots will be captured and stored under `artifacts/lab-04/screenshots/`:
 
-| Screen Target | Viewport Sizes to Capture | Storage Path |
-| :--- | :--- | :--- |
-| IT Staff Dashboard | 1280px, 768px, 375px | `artifacts/lab-04/screenshots/staff-dashboard/` |
-| Requester Dashboard | 1280px, 768px, 375px | `artifacts/lab-04/screenshots/requester-dashboard/` |
-| Actions Taken on Ticket Detail | 1280px, 768px, 375px | `artifacts/lab-04/screenshots/actions-taken/` |
+| Part | Screen Target and State | Viewports to Capture | Storage Path |
+| :--- | :--- | :--- | :--- |
+| **Part 5** | Staff Dashboard: Normal Operational State | 1280px, 768px, 375px | `artifacts/lab-04/screenshots/staff-dashboard/normal/` |
+| **Part 5** | Staff Dashboard: Loading Skeleton State | 1280px | `artifacts/lab-04/screenshots/staff-dashboard/loading.png` |
+| **Part 5** | Staff Dashboard: Empty Queue State | 1280px | `artifacts/lab-04/screenshots/staff-dashboard/empty.png` |
+| **Part 5** | Staff Dashboard: Safe Failure with Retry | 1280px | `artifacts/lab-04/screenshots/staff-dashboard/failure.png` |
+| **Part 6** | Actions Taken: List, Create Form, View/Edit | 1280px, 768px, 375px | `artifacts/lab-04/screenshots/actions-taken/` |
+| **Part 7** | Ticket Workflow: Status Dropdown & Resolution Gate | 1280px | `artifacts/lab-04/screenshots/ticket-workflow/` |
+| **Part 8** | Requester Dashboard: Normal, Attention & Empty | 1280px, 768px, 375px | `artifacts/lab-04/screenshots/requester-dashboard/` |
+| **Part 8** | Final Regression: Login, Queue, Detail, Admin Users | 1280px | `artifacts/lab-04/screenshots/regression/` |
+| **Part 9** | Forbidden Access Screen (HTTP 403) | 1280px, 375px | `artifacts/lab-04/screenshots/forbidden/` |
