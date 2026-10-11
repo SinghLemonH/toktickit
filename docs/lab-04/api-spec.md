@@ -2,18 +2,20 @@
 
 Base path: `/api`. All existing endpoints from Lab 1, Lab 2, and Lab 3 remain active with unchanged contracts except where explicitly updated below.
 
-Authentication is strictly enforced via the `toktickit_session` HTTP-only cookie. Protected endpoints return HTTP 401 when the session is missing or invalid, and HTTP 403 when the authenticated user role lacks authorization.
+Authentication is strictly enforced via the `toktickit_session` HTTP-only cookie. Protected endpoints return HTTP 401 when the session is missing or invalid, and HTTP 403 when the authenticated user role lacks authorization. To prevent resource enumeration, when a Requester accesses a ticket they do not own, the system responds with HTTP 404 Not Found.
 
 ## 1. Conventions and Error Formats
 
 ### 1.1. Standard Error Body
-All Lab 4 endpoints return errors in the standard JSON structure:
+All Lab 4 endpoints return errors in the established JSON structure matching Lab 2 and Lab 3:
 ```json
 {
-  "error": "Human-readable explanation of the error",
-  "code": "ERROR_CODE",
-  "fields": {
-    "followUpNote": "Follow-up note is mandatory when follow-up is required"
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Human-readable explanation of the error",
+    "fields": {
+      "followUpNote": "Follow-up note is mandatory when follow-up is required"
+    }
   }
 }
 ```
@@ -21,13 +23,13 @@ All Lab 4 endpoints return errors in the standard JSON structure:
 ### 1.2. Error Code Registry
 | HTTP Code | Error Code | Description |
 | :---: | :--- | :--- |
-| **400** | `VALIDATION` | A required field is missing, invalid, or exceeds length bounds. |
-| **400** | `INVALID_TRANSITION` | Requested status transition is not permitted by the transition matrix. |
-| **400** | `RESOLUTION_GATE` | Transition to Resolved is blocked because the Resolution Gate conditions are not satisfied. |
+| **400** | `VALIDATION_ERROR` | A required field is missing, invalid, or exceeds length bounds. |
+| **400** | `INVALID_STATUS_TRANSITION` | Requested status transition is not permitted by the transition matrix. |
+| **400** | `RESOLUTION_GATE_NOT_MET` | Transition to Resolved is blocked because the Resolution Gate conditions are not satisfied. |
 | **400** | `TICKET_LOCKED` | Actions Taken cannot be added or edited on Closed or Cancelled tickets. |
 | **401** | `UNAUTHORIZED` | Authentication session missing, invalid, or expired. |
-| **403** | `FORBIDDEN` | Authenticated user lacks permission for the requested resource or ticket ownership. |
-| **404** | `NOT_FOUND` | Ticket, Action Taken, or user resource does not exist. |
+| **403** | `FORBIDDEN` | Authenticated user lacks permission for the requested action. |
+| **404** | `NOT_FOUND` | Ticket, Action Taken, or user resource does not exist (or requester does not own ticket). |
 | **409** | `STALE_UPDATE` | Optimistic locking collision: `expectedVersion` does not match the database `version`. |
 | **500** | `INTERNAL_ERROR` | Unexpected server failure. |
 
@@ -35,14 +37,16 @@ All Lab 4 endpoints return errors in the standard JSON structure:
 Entities supporting concurrency control expose an integer `version`. Mutation requests must include `expectedVersion` in the request body. If the stored record version does not match `expectedVersion`, the server aborts the update and returns HTTP 409:
 ```json
 {
-  "error": "This record was updated by another user. Please reload the latest state.",
-  "code": "STALE_UPDATE",
-  "currentVersion": 4
+  "error": {
+    "code": "STALE_UPDATE",
+    "message": "This record was updated by another user. Please reload the latest state.",
+    "currentVersion": 4
+  }
 }
 ```
 
 ### 1.4. Timestamp Conventions
-All timestamps returned by APIs are formatted as ISO-8601 UTC strings (e.g., `2026-10-11T12:00:00.000Z`). Clients are responsible for formatting timestamps in the `Asia/Bangkok` timezone.
+All timestamps returned by APIs are formatted as ISO-8601 UTC strings (e.g., `2026-10-11T12:00:00.000Z`). Clients format timestamps in the `Asia/Bangkok` timezone.
 
 ---
 
@@ -76,13 +80,13 @@ Retrieves all Actions Taken associated with a Ticket in stable chronological ord
       "name": "Sarah Johnson"
     },
     "version": 2,
+    "clientRequestId": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
     "createdAt": "2026-10-11T09:35:00.000Z",
     "updatedAt": "2026-10-11T10:00:00.000Z"
   }
 ]
 ```
-- **Response 403 Forbidden**: Caller is a Requester who does not own the ticket.
-- **Response 404 Not Found**: Ticket does not exist.
+- **Response 404 Not Found**: Ticket does not exist, or caller is a Requester who does not own the ticket.
 
 ### 2.2. POST /api/staff/tickets/:id/actions
 Creates a new Action Taken under a Ticket.
@@ -93,7 +97,7 @@ Creates a new Action Taken under a Ticket.
 {
   "actionAt": "2026-10-11T09:30:00.000Z",
   "description": "Inspected network cable and replaced damaged patch cord.",
-  "result": "Link connectivity restored at 1Gbps.",
+  "result": "",
   "followUpRequired": false,
   "followUpNote": null,
   "attachmentNotes": null,
@@ -101,15 +105,16 @@ Creates a new Action Taken under a Ticket.
   "clientRequestId": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d"
 }
 ```
-- **Validation Rules**:
+- **Validation and Idempotency Rules**:
   - `actionAt`: Optional ISO string. Defaults to current timestamp. Cannot precede Ticket `createdAt` (evaluated at minute precision) or exceed current time by more than 5 minutes.
   - `description`: Required string, 1 to 2000 characters after trimming.
-  - `result`: Optional string, up to 2000 characters.
+  - `result`: Optional string, up to 2000 characters while Planned.
   - `followUpRequired`: Boolean.
   - `followUpNote`: Required (1 to 1000 characters) when `followUpRequired` is true. Cleared to null when false.
-  - `assigneeId`: Optional integer. Defaults to `req.user.id`. Must refer to an active IT Staff or Administrator.
-  - `clientRequestId`: Optional UUID string for request idempotency.
-- **Response 201 Created**: Returns created Action Taken object.
+  - `assigneeId`: Optional integer. Defaults to `req.user.id`. Must refer to an active IT Staff or Administrator. Inactive users or requesters are rejected with 400.
+  - `clientRequestId`: UUID string. If a row with this `(ticketId, clientRequestId)` already exists, the server returns HTTP 200 with the existing row (idempotent replay).
+- **Response 201 Created**: Action created successfully.
+- **Response 200 OK**: Idempotent replay of previously created Action.
 - **Response 400 Bad Request**: Validation failure or Ticket is in Closed/Cancelled status.
 
 ### 2.3. PATCH /api/staff/tickets/:id/actions/:actionId
@@ -122,20 +127,32 @@ Edits a planned action, completes it, or cancels it.
   "description": "Updated diagnostic steps.",
   "result": "Issue resolved successfully.",
   "status": "COMPLETED",
+  "followUpRequired": false,
+  "followUpNote": null,
+  "attachmentNotes": null,
+  "assigneeId": 5,
   "expectedVersion": 1
 }
 ```
 - **Rules**:
+  - Updatable fields: `description`, `result`, `status`, `followUpRequired`, `followUpNote`, `attachmentNotes`, `assigneeId`.
   - Once status is `COMPLETED` or `CANCELLED`, the action is immutable.
   - Transitioning to `COMPLETED` requires a non-empty `result` field.
-  - Requires `expectedVersion`. Returns 409 if version mismatch.
+  - Requires integer `expectedVersion`. Returns HTTP 409 if version mismatch.
 - **Response 200 OK**: Returns updated Action Taken object.
 
 ---
 
 ## 3. Ticket Workflow Endpoints
 
-### 3.1. PATCH /api/staff/tickets/:id/status
+### 3.1. GET /api/tickets/:id (Updated Contract)
+Retrieves ticket operational details.
+- Returns all Lab 2/3 fields plus:
+  - `version`: Current integer version for optimistic locking.
+  - `allowedTransitions`: Array of statuses permitted from the current status for the authenticated caller role (empty array for Requesters unless eligible for Reopen).
+  - `resolutionGate`: Object `{ ok: boolean, reasons: string[] }` evaluating current gate readiness.
+
+### 3.2. PATCH /api/staff/tickets/:id/status
 Transitions Ticket status along permitted paths.
 
 - **Authorization**: `IT_STAFF`, `ADMINISTRATOR`.
@@ -151,20 +168,22 @@ Transitions Ticket status along permitted paths.
     1. `assignedToId` is not null.
     2. At least one `COMPLETED` Action Taken exists.
     3. Zero `PLANNED` Actions Taken exist.
-  - If any condition fails, returns HTTP 400 `RESOLUTION_GATE` with detailed reasons array:
+  - If any condition fails, returns HTTP 400 `RESOLUTION_GATE_NOT_MET`:
     ```json
     {
-      "error": "Resolution gate criteria not satisfied",
-      "code": "RESOLUTION_GATE",
-      "reasons": [
-        "A Ticket Owner must be assigned before resolving",
-        "At least one Completed Action Taken is required"
-      ]
+      "error": {
+        "code": "RESOLUTION_GATE_NOT_MET",
+        "message": "Resolution gate criteria not satisfied",
+        "reasons": [
+          "A Ticket Owner must be assigned before resolving",
+          "At least one Completed Action Taken is required"
+        ]
+      }
     }
     ```
 - **Response 200 OK**: Returns updated Ticket object including new `version` and `allowedTransitions`.
 
-### 3.2. POST /api/tickets/:id/reopen
+### 3.3. POST /api/tickets/:id/reopen
 Allows Requesters to reopen their own Resolved or Closed tickets.
 
 - **Authorization**: `REQUESTER` (must own ticket).
@@ -181,7 +200,7 @@ Allows Requesters to reopen their own Resolved or Closed tickets.
   - Records an entry in `TicketStatusHistory`.
 - **Response 200 OK**: Returns updated Ticket.
 
-### 3.3. GET /api/tickets/:id/history
+### 3.4. GET /api/tickets/:id/history
 Retrieves the append-only status audit trail.
 
 - **Authorization**: Permitted to any user authorized to view the ticket.
@@ -214,16 +233,27 @@ Returns summary statistics strictly for the authenticated Requester.
 {
   "metrics": {
     "myOpenTickets": 3,
+    "waitingForRequester": 1,
     "inProgress": 2,
     "resolved": 5,
     "closed": 12
   },
   "links": {
     "myOpenTickets": "/tickets?statusGroup=active",
-    "inProgress": "/tickets?status=IN_PROGRESS",
-    "resolved": "/tickets?status=RESOLVED",
-    "closed": "/tickets?status=CLOSED"
+    "waitingForRequester": "/tickets?currentStatus=WAITING_FOR_REQUESTER",
+    "inProgress": "/tickets?currentStatus=IN_PROGRESS",
+    "resolved": "/tickets?currentStatus=RESOLVED",
+    "closed": "/tickets?currentStatus=CLOSED"
   },
+  "attentionTickets": [
+    {
+      "id": 12,
+      "ticketNumber": "TKT-2026-000012",
+      "title": "Please provide device serial number",
+      "currentStatus": "WAITING_FOR_REQUESTER",
+      "updatedAt": "2026-10-11T08:30:00.000Z"
+    }
+  ],
   "recentTickets": [
     {
       "id": 15,
@@ -242,6 +272,9 @@ Returns summary statistics strictly for the authenticated Requester.
 Returns operational queue statistics for IT Staff and Administrators.
 
 - **Authorization**: `IT_STAFF`, `ADMINISTRATOR`.
+- **Calculation Rules**:
+  - `myAssigned`: Counts tickets where `assignedToId == req.user.id` and status is active (BR-18).
+  - `unassigned`: Counts tickets where `assignedToId == null` and status is active (BR-18).
 - **Response 200 OK**:
 ```json
 {
@@ -258,8 +291,8 @@ Returns operational queue statistics for IT Staff and Administrators.
     "openTickets": "/staff/queue?status=OPEN",
     "inProgress": "/staff/queue?status=IN_PROGRESS",
     "waitingForRequester": "/staff/queue?status=WAITING_FOR_REQUESTER",
-    "myAssigned": "/staff/queue?assignedTo=me",
-    "unassigned": "/staff/queue?assignedTo=unassigned"
+    "myAssigned": "/staff/queue?assignedTo=me&statusGroup=active",
+    "unassigned": "/staff/queue?assignedTo=unassigned&statusGroup=active"
   },
   "recentTickets": [
     {
@@ -279,4 +312,4 @@ Returns operational queue statistics for IT Staff and Administrators.
   "generatedAt": "2026-10-11T10:00:00.000Z"
 }
 ```
-*(Note: `userCounts` is included only when the caller role is `ADMINISTRATOR`.)*
+*(Note: `userCounts` is included only when caller role is `ADMINISTRATOR`.)*
