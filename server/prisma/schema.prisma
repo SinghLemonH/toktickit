@@ -1,10 +1,10 @@
 // Prisma schema datasource and generator are pre-wired.
 // Your DATABASE_URL lives in server/.env (copy it from .env.example).
 //
-// LOCKED for Lab 2 see docs/lab-02/schema.prisma for full rationale on every
-// field/index. Do not modify without updating that doc + specification.md
-// Section 7 and getting reviewer sign-off.
-
+// TokTickIT Schema: Evolving across Lab 1, 2, 3, and 4.
+// See docs/lab-04/specification.md for Lab 4 database design rationale.
+// Do not modify without updating specification.md and getting reviewer sign-off.
+//
 generator client {
   provider = "prisma-client-js"
 }
