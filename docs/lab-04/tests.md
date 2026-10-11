@@ -8,10 +8,11 @@ Testing in Sprint 4 adheres strictly to Test-Driven Development (TDD) and Spec-D
 - **Unit Tests**: Pure business logic verification (status transition matrix by role including PENDING, resolution gate validator, action input parser, dashboard window helpers) located under `server/tests/lab-04/*.unit.test.ts` to match `server/vitest.config.ts`.
 - **API and Integration Tests**: Supertest executing against the Express backend and PostgreSQL database with disabled parallelism (`fileParallelism: false`) to ensure deterministic test execution.
 - **UI Component Tests**: Vitest with React Testing Library simulating component interactions, mock API responses, validation error rendering, and role restrictions.
-- **UI Style Tests**: Validating adherence to Zen Green CSS tokens, readable badge labels, and accessible contrast ratios.
+- **UI Style Tests**: Playwright and static token assertions validating adherence to Zen Green CSS tokens in `theme.css`, readable badge labels, and accessible contrast ratios.
 - **End-to-End Tests**: Playwright executing complete user journeys in real browser contexts across desktop, tablet, and mobile viewports.
 - **Performance Smoke Tests**: Validating that aggregate dashboard queries execute in under 500ms on seeded data.
 - **Static Type Check**: Running `tsc --noEmit` on both server and client to guarantee zero TypeScript compiler errors.
+- **Isolated Migration & Rollback Test**: Running additive migration, seed, and rollback verification against an isolated temporary schema/database so shared test tables remain untouched.
 - **Regression Verification**: Running all test suites from Lab 1, Lab 2, and Lab 3 to guarantee zero backward compatibility breakage.
 
 ### 1.2. Contract Changes Affecting Earlier Tests
@@ -36,12 +37,15 @@ The following intentional contract changes evolved earlier sprint behavior:
 | **API-05** | API | AC-03, BR-07 | Submit `followUpRequired=true` without note | HTTP 400 with `fields.followUpNote` error | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
 | **API-06** | API | BR-06, BR-08 | Empty description or invalid future timestamp for Completed | HTTP 400 `VALIDATION_ERROR` | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
 | **API-07** | API | FR-03 | List actions for a ticket | HTTP 200; stable ordering by `actionAt` then `id` | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
-| **API-08** | API | FR-04, BR-09 | Edit planned action and transition to Completed | HTTP 200; version increments; result mandatory | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
+| **API-08** | API | FR-04, BR-09 | Edit planned action and transition to Completed | HTTP 200; version increments; result mandatory; `completedById` recorded | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
 | **API-09** | API | BR-09 | Attempt to edit Completed or Cancelled action | HTTP 400 `ACTION_IMMUTABLE`; record unchanged | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
 | **API-10** | API | AC-10, BR-17 | Edit action with stale `expectedVersion` | HTTP 409 `STALE_UPDATE`; record unchanged | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
 | **API-11** | API | BR-10 | Add or edit action on Closed or Cancelled ticket | HTTP 400 `TICKET_LOCKED` | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
 | **API-12** | API | BR-01 | Access action ID with mismatched ticket ID | HTTP 404 Not Found | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
 | **API-13** | API | AC-19 | Idempotent replay of same `clientRequestId` | HTTP 200 OK with existing action record | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
+| **API-14** | API | BR-08 | Create Planned Action with future date | HTTP 201 Created; future date accepted for planning | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
+| **API-15** | API | BR-08 | Create Completed Action with future date > 5 minutes | HTTP 400 `VALIDATION_ERROR`; rejected | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
+| **API-16** | API | FR-01 | Create Action directly as Completed with result | HTTP 201 Created; status Completed and `completedById` recorded | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
 | **SEC-01** | Security | AC-05, BR-03 | Requester attempts to call staff action endpoints | HTTP 403 Forbidden; no records written | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
 | **SEC-02** | Security | AC-06, FR-05 | Requester reads actions of own vs other ticket | Own ticket: HTTP 200; Other ticket: HTTP 404 | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
 | **WF-01** | API | AC-07, FR-07, BR-11 | Transition to Resolved failing resolution gate | HTTP 400 `RESOLUTION_GATE_NOT_MET` with reasons | `server/tests/lab-04/ticket-workflow.api.test.ts` | Planned |
@@ -52,6 +56,7 @@ The following intentional contract changes evolved earlier sprint behavior:
 | **WF-06** | API | AC-11, FR-11, BR-15 | Requester sets "problem appears resolved" flag | HTTP 200; flag true; ticket status unchanged | `server/tests/lab-04/ticket-workflow.api.test.ts` | Planned |
 | **WF-07** | API | AC-12, FR-09, BR-16 | Retrieve ticket status audit history | HTTP 200; chronological order; immutable | `server/tests/lab-04/ticket-workflow.api.test.ts` | Planned |
 | **WF-08** | API | BR-18 | Attempt to reassign owner on Resolved ticket | HTTP 400 `TICKET_LOCKED`; assignment blocked | `server/tests/lab-04/ticket-workflow.api.test.ts` | Planned |
+| **WF-09** | API | AC-10, BR-17 | Assign ticket owner with stale `expectedVersion` | HTTP 409 `STALE_UPDATE`; assignment rejected | `server/tests/lab-04/ticket-workflow.api.test.ts` | Planned |
 | **DASH-01** | API | AC-02, BR-22 | Requester dashboard metrics isolation | HTTP 200; counts scoped only to caller tickets | `server/tests/lab-04/requester-dashboard.api.test.ts` | Planned |
 | **DASH-02** | API | FR-12, BR-19, BR-20 | Requester metric calculation accuracy | Counts match independent database queries | `server/tests/lab-04/requester-dashboard.api.test.ts` | Planned |
 | **DASH-03** | API | AC-14, BR-23 | Requester dashboard for user with 0 tickets | HTTP 200; counts = 0; attentionTickets = []; recentTickets = [] | `server/tests/lab-04/requester-dashboard.api.test.ts` | Planned |
@@ -60,7 +65,7 @@ The following intentional contract changes evolved earlier sprint behavior:
 | **DASH-06** | API | FR-14 | Administrator extra user account metrics | `userCounts` returned for Admin; absent for Staff | `server/tests/lab-04/staff-dashboard.api.test.ts` | Planned |
 | **DASH-SEC** | Security | BR-22 | Dashboard role authorization guards | Requester accessing staff dashboard gets 403; unauthenticated gets 401 | `server/tests/lab-04/staff-dashboard.api.test.ts` | Planned |
 | **PERF-01** | Smoke | BR-21 | Dashboard endpoint latency budget | Response time < 500ms on seeded dataset | `server/tests/lab-04/performance-smoke.test.ts` | Planned |
-| **MIG-01** | Migration | AC-16, BR-26 | Additive migration preserves existing data | All legacy tables, users, and tickets intact | `server/tests/lab-04/migration-seed.test.ts` | Planned |
+| **MIG-01** | Migration | AC-16, BR-26 | Additive migration preserves existing data and rollback | Executed in isolated temp database/schema; tables and counts verified | `server/tests/lab-04/migration-seed.test.ts` | Planned |
 | **MIG-02** | Migration | BR-26 | Seed idempotency verification | Running seed twice produces identical row counts | `server/tests/lab-04/migration-seed.test.ts` | Planned |
 | **UI-01** | UI | FR-13, FR-15 | Staff dashboard metric cards and navigation | Cards display numbers and valid drill-down links | `client/tests/lab-04/StaffDashboard.test.tsx` | Planned |
 | **UI-02** | UI | AC-14, FR-18 | Staff dashboard loading, empty, and retry states | Skeleton rendered; retry button functional | `client/tests/lab-04/StaffDashboard.test.tsx` | Planned |
@@ -70,7 +75,7 @@ The following intentional contract changes evolved earlier sprint behavior:
 | **UI-06** | UI | AC-19, FR-19 | Double submit prevention and form preservation | Button disabled while saving; text preserved | `client/tests/lab-04/ActionsTaken.test.tsx` | Planned |
 | **UI-07** | UI | AC-07, FR-06 | Resolution Gate feedback in status dropdown | Missing gate requirements displayed clearly | `client/tests/lab-04/TicketWorkflow.test.tsx` | Planned |
 | **UI-08** | UI | AC-20, FR-20 | Forbidden screen on unauthorized route | Renders 403 page with link to Dashboard | `client/tests/lab-04/Navigation.test.tsx` | Planned |
-| **STYLE-01** | UI Style | AC-18 | Zen Green tokens and badge non-color styling | Verified against `theme.css` tokens; badges carry text | `client/tests/lab-04/ZenGreenStyle.test.tsx` | Planned |
+| **STYLE-01** | UI Style | AC-18 | Zen Green tokens and computed badge styles | Playwright verification of `theme.css` tokens and badge text cues | `e2e/lab-04/responsive-accessibility.spec.ts` | Planned |
 | **E2E-01** | E2E | AC-01, AC-06 | Multiple staff record actions on single ticket | Both actions visible; requester view read-only | `e2e/lab-04/actions-taken-flow.spec.ts` | Planned |
 | **E2E-02** | E2E | AC-07, AC-08, AC-15 | Full ticket lifecycle from create to reopen | Gate enforced; resolution recorded; reopen works | `e2e/lab-04/ticket-resolution.spec.ts` | Planned |
 | **E2E-03** | E2E | AC-13 | Staff dashboard drill-down navigation journeys | Clicking card filters queue with exact parity | `e2e/lab-04/dashboards.spec.ts` | Planned |
@@ -78,7 +83,7 @@ The following intentional contract changes evolved earlier sprint behavior:
 | **RESP-01** | Responsive | AC-18 | Multi-viewport inspection across 1280, 768, 375 | Zero horizontal scroll; no clipping or overlap | `e2e/lab-04/responsive-accessibility.spec.ts` | Planned |
 | **A11Y-01** | Accessibility | AC-18 | Keyboard navigation and visible focus rings | Accessible Tab cycle; focus trap in modals | `e2e/lab-04/responsive-accessibility.spec.ts` | Planned |
 | **TSC-01** | Typecheck | DoD 6 | TypeScript strict compilation without emit | Zero errors on `server` and `client` | `npx tsc --noEmit` | Planned |
-| **REG-01** | Regression | AC-17, FR-17 | Complete Lab 1 to Lab 3 backend test suites | All suites pass 100% without regression | `server/tests/lab-01..03/*` | Planned |
+| **REG-01** | Regression | AC-17, FR-17 | Complete Lab 1 to Lab 3 backend test suites | All suites pass 100% after documented contract adjustments | `server/tests/lab-01..03/*` | Planned |
 | **REG-02** | Regression | AC-17, FR-17 | Complete Lab 1 to Lab 3 client test suites | All suites pass 100% without regression | `client/tests/lab-01..03/*` | Planned |
 | **REG-E2E-01** | Regression | AC-17 | Lab 2 Requester Ticket Flow E2E | Passes with session login through /login | `e2e/lab-02/requester-ticket-flow.spec.ts` | Planned |
 | **REG-E2E-02** | Regression | AC-17 | Lab 3 Authentication, Staff & Admin E2E | All 3 Playwright specs pass cleanly | `e2e/lab-03/*` | Planned |

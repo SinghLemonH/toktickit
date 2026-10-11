@@ -8,7 +8,7 @@ Complete the core service-desk workflow: IT Staff and Administrators record the 
 
 ## 2. Stakeholder Request Interpretation
 
-While the service desk can already receive Tickets and communicate via Public Comments and Internal Notes, it lacks a structured mechanism to plan, execute, and verify actual technical work. Each Ticket requires a recorded list of Actions Taken: when the work occurred, description of the action, result obtained, who performed it (recorded automatically from the session), whether follow-up is necessary (with an accompanying note), and references to related attachment files. 
+While the service desk can already receive Tickets and communicate via Public Comments and Internal Notes, it lacks a structured mechanism to plan, execute, and verify actual technical work. Each Ticket requires a recorded list of Actions Taken: when the work occurred, description of the action, result obtained, who performed it (recorded automatically from the session), who completed it, whether follow-up is necessary (with an accompanying note), and references to related attachment files. 
 
 The primary Ticket Owner coordinates the Ticket overall, while different IT Staff members can perform individual actions. A Requester indication that "the problem appears resolved" is purely advisory: IT Staff must evaluate the recorded actions and formally transition the Ticket to Resolved. Furthermore, Requesters and IT Staff require concise, role-appropriate dashboards that summarize operational load without replacing the comprehensive Ticket lists. Finally, all features must adhere consistently to the Zen Green design system.
 
@@ -53,10 +53,10 @@ The primary Ticket Owner coordinates the Ticket overall, while different IT Staf
 | User Management (`/admin/users`) | Not Allowed (Forbidden) | Not Allowed (Forbidden) | Allowed |
 
 ### 4.2. Functional Requirement Statements
-- **FR-01**: The system shall allow IT Staff and Administrators to create an Action Taken on any active Ticket with Action Date/Time, Description, Result, Follow-Up Required flag, Follow-up Note, Attachment Notes, and an Assignee. An Action may be created directly as `COMPLETED` if a non-empty Result is provided.
+- **FR-01**: The system shall allow IT Staff and Administrators to create an Action Taken on any active Ticket with Action Date/Time, Description, Result, Follow-Up Required flag, Follow-up Note, Attachment Notes, and an Assignee. An Action may be created as `PLANNED` or directly as `COMPLETED` (requiring a non-empty Result).
 - **FR-02**: The system shall record the authenticated user as "Performed by" automatically; client-supplied values for this field shall be ignored.
 - **FR-03**: The system shall list all Actions Taken of a Ticket in stable chronological order for IT Staff and Administrators.
-- **FR-04**: The system shall allow IT Staff and Administrators to edit a Planned Action Taken and mark it Completed or Cancelled.
+- **FR-04**: The system shall allow IT Staff and Administrators to edit a Planned Action Taken, update its date, and mark it Completed (recording "Completed by") or Cancelled.
 - **FR-05**: The system shall present all Actions Taken on a Ticket to the owning Requester in read-only mode, hiding all creation and modification controls.
 - **FR-06**: The system shall permit Ticket status transitions only along the authorized status-transition matrix and only for roles permitted for that specific transition.
 - **FR-07**: The system shall reject transitions to Resolved unless the Resolution Gate (BR-11) is satisfied, even when client interfaces are bypassed.
@@ -69,7 +69,7 @@ The primary Ticket Owner coordinates the Ticket overall, while different IT Staf
 - **FR-14**: The system shall provide Administrators with the IT Staff Dashboard supplemented with concise user-account counts.
 - **FR-15**: Every dashboard count and card shall provide drill-down links to the Ticket Queue or My Tickets with matching filters pre-applied.
 - **FR-16**: The Ticket Queue and My Tickets screens shall accept URL query parameters matching dashboard metrics (`statusGroup`, `currentStatus`, `status`, `itPriority`, `assignedTo`).
-- **FR-17**: All Lab 1, 2, and 3 screens and APIs shall remain fully operational for permitted roles without regression.
+- **FR-17**: All Lab 1, 2, and 3 screens and APIs shall remain fully operational for permitted roles after accounting for documented contract evolutions.
 - **FR-18**: Every interface shall present consistent loading, validation, success, empty, forbidden, conflict, and safe failure feedback.
 - **FR-19**: Repeated form submissions shall be prevented by disabling submit buttons during active network requests.
 - **FR-20**: Authenticated users navigating to unauthorized routes shall receive a clear Forbidden page rather than an unexpected login redirect.
@@ -84,8 +84,8 @@ The primary Ticket Owner coordinates the Ticket overall, while different IT Staf
 - **BR-05**: The assignee must be an active IT Staff or Administrator user; if omitted, it defaults to the creator. Non-staff or inactive assignees shall be rejected with HTTP 400.
 - **BR-06**: Action Description is mandatory (1 to 2000 characters after trimming). Result is optional while status is Planned (up to 2000 characters) and becomes mandatory when transitioning to Completed. Attachment Notes are optional (up to 500 characters).
 - **BR-07**: When Follow-Up Required is true, Follow-up Note is mandatory (1 to 1000 characters). When false, any provided Follow-up Note is cleared to null.
-- **BR-08**: Action Date/Time defaults to the current timestamp. For `COMPLETED` actions, it cannot precede Ticket creation time (evaluated at minute precision) and cannot be more than 5 minutes in the future. For `PLANNED` actions, future dates beyond 5 minutes are allowed to support work scheduling.
-- **BR-09**: Action status transitions strictly from `PLANNED` to `COMPLETED` or `PLANNED` to `CANCELLED`. Once an action is in `COMPLETED` or `CANCELLED` status, it is immutable; any modification attempt is rejected with HTTP 400 `ACTION_IMMUTABLE`.
+- **BR-08**: Action Date/Time defaults to the current timestamp. For `COMPLETED` actions, it cannot precede Ticket creation time (evaluated at minute precision) and cannot be more than 5 minutes in the future. For `PLANNED` actions, future dates are allowed to support work scheduling. When completing a planned action, `actionAt` can be updated to the actual execution time.
+- **BR-09**: Action status transitions strictly from `PLANNED` to `COMPLETED` or `PLANNED` to `CANCELLED`. Once an action is in `COMPLETED` or `CANCELLED` status, it is immutable; any modification attempt is rejected with HTTP 400 `ACTION_IMMUTABLE`. Completing an action sets `completedById` to the authenticated user.
 - **BR-10**: Actions Taken cannot be added, edited, or cancelled on Tickets with status `CLOSED` or `CANCELLED`. Attempts return HTTP 400 `TICKET_LOCKED`.
 
 ### Ticket Lifecycle and Resolution Rules
@@ -108,7 +108,7 @@ The primary Ticket Owner coordinates the Ticket overall, while different IT Staf
 - **BR-15**: The Requester indication that the problem appears resolved is purely advisory and does not change Ticket status.
 - **BR-16**: Every successful status transition appends a permanent record in `TicketStatusHistory` recording from-status, to-status, changed-by user, and timestamp.
 - **BR-17**: Status transitions, assignments, and Action updates must supply `expectedVersion`. If the record has been updated concurrently (`version != expectedVersion`), the update is rejected with HTTP 409 `STALE_UPDATE`.
-- **BR-18**: Assigning or reassigning a ticket owner (`PATCH /api/staff/tickets/:id/assign`) is prohibited on terminal or resolved tickets (`RESOLVED`, `CLOSED`, `CANCELLED`) to prevent bypassing the Resolution Gate owner requirement.
+- **BR-18**: Assigning or reassigning a ticket owner (`PATCH /api/staff/tickets/:id/assign`) is prohibited on terminal or resolved tickets (`RESOLVED`, `CLOSED`, `CANCELLED`) to prevent bypassing the Resolution Gate owner requirement. Attempts return HTTP 400 `TICKET_LOCKED`.
 
 ### Dashboard Metric Rules
 - **BR-19**: "Active" tickets for dashboard aggregation comprise statuses: `NEW`, `OPEN`, `IN_PROGRESS`, `WAITING_FOR_REQUESTER`, `REOPENED`, and legacy `PENDING`.
@@ -117,8 +117,8 @@ The primary Ticket Owner coordinates the Ticket overall, while different IT Staf
 - **BR-22**: Requester Dashboard metrics strictly scope queries to the authenticated user ID (`requesterId = req.user.id`).
 - **BR-23**: Zero-state dashboard handling: users with no tickets or assignments must receive zero counts and empty arrays with HTTP 200, never errors.
 - **BR-24**: Adding or updating an Action Taken updates the parent Ticket's `updatedAt` timestamp, ensuring dashboard recently-updated queues stay fresh.
-- **BR-25**: Dashboard recent activity lists are capped at a maximum of 5 items, sorted in descending order of update time.
-- **BR-26**: Database seeds must be idempotent, safely re-runnable, and provide realistic records across all statuses and ownership conditions with staggered creation and update timestamps extending past 7 days.
+- **BR-25**: Dashboard recent operational activity lists display up to 5 tickets of any status updated within the rolling last 7 days, sorted in descending order of update time.
+- **BR-26**: Database seeds must be idempotent, safely re-runnable, and provide at least 12 realistic records across all statuses and ownership conditions with staggered timestamps extending past 7 days.
 
 ## 6. UI Specification Summary
 
@@ -136,13 +136,15 @@ The primary Ticket Owner coordinates the Ticket overall, while different IT Staf
   - Displays only permitted transitions dynamically.
   - Shows clear explanatory alert banners if the Resolution Gate is not yet satisfied.
   - Provides confirmation before saving status transitions.
-- **Visual Design Tokens**: Strictly uses tokens from `client/src/theme.css` (`--bs-primary`, `--bs-info`, `--zg-pale-green`, `--zg-readonly-bg`, `--zg-shadow-soft`).
+  - Status History card renders directly below the status control box.
+- **Visual Design Tokens**: Strictly uses tokens from `client/src/theme.css` (`--bs-primary: #006b3c`, `--bs-info: #0b7a46`, `--zg-pale-green: #eaf6ef`, `--zg-readonly-bg: #f3f5f4`, `--zg-shadow-soft`).
 
 ## 7. Data Changes
 
-### 7.1. Database Models and Indexes
+### 7.1. Database Models and Enums
+- **Enum `ActionStatus`**: `PLANNED`, `COMPLETED`, `CANCELLED`.
 - **Model `ActionTaken`**:
-  - Fields: `id`, `ticketId`, `performedById`, `assigneeId`, `actionAt`, `description`, `result`, `followUpRequired`, `followUpNote`, `attachmentNotes`, `status`, `version`, `clientRequestId`, `createdAt`, `updatedAt`.
+  - Fields: `id`, `ticketId`, `performedById`, `assigneeId`, `completedById` (nullable), `actionAt`, `description`, `result`, `followUpRequired`, `followUpNote`, `attachmentNotes`, `status` (`ActionStatus`), `version`, `clientRequestId`, `createdAt`, `updatedAt`.
   - Composite indexes: `@@index([ticketId, actionAt])` and `@@index([assigneeId, status])`.
   - Unique constraint: `@@unique([ticketId, clientRequestId])` for idempotent action creation.
 - **Model `TicketStatusHistory`**:
@@ -152,10 +154,10 @@ The primary Ticket Owner coordinates the Ticket overall, while different IT Staf
   - Added field: `version Int @default(0)` to support atomic optimistic locking.
 
 ### 7.2. Migration and Backfill Decisions
-- **Additive Migration**: Migration `20261011_lab4_actions_taken_and_workflow` creates `ActionTaken`, `TicketStatusHistory`, and adds `version` (default 0) to `Ticket`. No existing tables or columns are dropped or renamed.
+- **Additive Migration**: An additive migration creates `ActionTaken`, `TicketStatusHistory`, `ActionStatus` enum, and adds `version` (default 0) to `Ticket`. No existing tables or columns are dropped or renamed.
 - **Legacy Records**: Existing tickets created in Labs 1 to 3 start with `version = 0`, zero Actions Taken, and no status history. They remain fully operational. If a staff member resolves a legacy ticket, they must first record a Completed Action Taken to satisfy the Resolution Gate.
 - **Rollback SQL (`server/prisma/rollback-lab4.sql`)**: Drops `ActionTaken` and `TicketStatusHistory` tables, drops `ActionStatus` enum, and removes the `version` column from `Ticket`. Verification tests verify row counts before migration, after migration, and after rollback.
-- **Seed Strategy**: The seed script populates 9 demo tickets with staggered timestamps (some within 7 days, some older than 7 days) to demonstrate realistic recent vs older dashboard buckets.
+- **Seed Strategy**: The seed script populates at least 12 demo tickets with staggered timestamps (some within 7 days, some older than 7 days) to demonstrate realistic recent vs older dashboard buckets.
 
 ## 8. API Contract
 
@@ -163,13 +165,13 @@ Base path: `/api`. Error responses follow standard `{ error: { code, message, fi
 
 ### 8.1. Actions Taken Endpoints
 - `GET /api/tickets/:id/actions`: Returns actions array. Staff/Admin access all; Requesters access owned tickets (other tickets return 404).
-- `POST /api/staff/tickets/:id/actions`: Creates action (defaults to Planned, or Completed if result provided). Replay with same `clientRequestId` returns HTTP 200 with existing row.
-- `PATCH /api/staff/tickets/:id/actions/:actionId`: Edits Planned action, completes it, or cancels it. Updatable fields: `description`, `result`, `status`, `followUpRequired`, `followUpNote`, `attachmentNotes`, `assigneeId`. Requires `expectedVersion`. Modifying Completed/Cancelled action returns 400 `ACTION_IMMUTABLE`.
+- `POST /api/staff/tickets/:id/actions`: Creates action (status defaults to `PLANNED` or can be set to `COMPLETED` with result). Replay with same `clientRequestId` returns HTTP 200 with existing row.
+- `PATCH /api/staff/tickets/:id/actions/:actionId`: Edits Planned action, completes it (recording `completedById`), or cancels it. Updatable fields: `actionAt`, `description`, `result`, `status`, `followUpRequired`, `followUpNote`, `attachmentNotes`, `assigneeId`. Requires `expectedVersion`. Modifying Completed/Cancelled action returns 400 `ACTION_IMMUTABLE`.
 
 ### 8.2. Ticket Workflow Endpoints
 - `GET /api/tickets/:id`: Returns ticket details, `version`, `allowedTransitions`, and `resolutionGate: { ok, reasons }`.
 - `PATCH /api/staff/tickets/:id/status`: Transitions status with `expectedVersion`. Enforces matrix and Resolution Gate (returns 400 `RESOLUTION_GATE_NOT_MET` with reasons).
-- `PATCH /api/staff/tickets/:id/assign`: Updates owner and increments `version`. Blocked on `RESOLVED`/`CLOSED`/`CANCELLED` tickets.
+- `PATCH /api/staff/tickets/:id/assign`: Updates owner and increments `version`. Blocked on `RESOLVED`/`CLOSED`/`CANCELLED` tickets with 400 `TICKET_LOCKED`.
 - `POST /api/tickets/:id/reopen`: Reopens resolved or closed ticket for owning requester. Clears advisory resolved flag.
 - `GET /api/tickets/:id/history`: Returns audit trail sorted by `changedAt asc`.
 
@@ -196,7 +198,7 @@ Base path: `/api`. Error responses follow standard `{ error: { code, message, fi
 - **AC-14**: Given a user with zero tickets or assignments, dashboard endpoints return zero counts and empty arrays with HTTP 200.
 - **AC-15**: Given a Requester viewing their own Resolved or Closed Ticket, the system permits reopening the Ticket, setting status to Reopened and clearing the resolution advisory flag.
 - **AC-16**: Given existing database records from Labs 1 to 3, running the Lab 4 migration preserves all existing users, tickets, comments, and attachments intact.
-- **AC-17**: Given the complete application, all existing automated test suites from Labs 1, 2, and 3 continue to pass without failure.
+- **AC-17**: Given the complete application, all existing automated test suites from Labs 1, 2, and 3 continue to pass without failure after accounting for documented contract evolutions.
 - **AC-18**: Given the application across Desktop (1280px), Tablet (768px), and Mobile (375px) viewports, all screens display without clipping, overlapping controls, or horizontal overflow.
 - **AC-19**: Given double-clicking a submit button or network retries, duplicate records are prevented and entered form data is preserved upon recoverable errors.
 - **AC-20**: Given an authenticated user accessing an unauthorized route directly via URL, the system displays a clear Forbidden screen with a link to return to Dashboard.
@@ -220,5 +222,5 @@ Base path: `/api`. Error responses follow standard `{ error: { code, message, fi
 2. **Resolution Gate Enforcement on Legacy Tickets**: Existing tickets that do not have Actions Taken cannot bypass the Resolution Gate. To resolve a legacy ticket, staff must record at least one Completed Action Taken.
 3. **Information Hiding via 404**: In alignment with Lab 3 security conventions, when a Requester queries actions, comments, or details of a Ticket they do not own, the system responds with HTTP 404 Not Found rather than 403 Forbidden to prevent ticket existence enumeration.
 4. **Idempotency Strategy**: Creating an Action Taken uses a client-generated UUID `clientRequestId`. Submitting the same request again returns HTTP 200 with the existing record rather than creating a duplicate or failing.
-5. **Performed by vs Assignee Distinction**: `performedBy` permanently denotes the authenticated creator who originally logged the action. The `assignee` denotes the technician currently assigned to carry out or follow up on the work. When an action is completed, the user performing completion is tracked via `updatedAt` audit logging.
-6. **Future Dating on Planned Actions**: To allow technicians to plan forward-looking maintenance, `PLANNED` actions may specify future dates. The strict clock-skew restriction (not more than 5 minutes in the future) applies exclusively when marking or creating an action as `COMPLETED`.
+5. **Performed by vs Assignee vs Completed by**: `performedBy` permanently denotes the creator who initially logged the action. The `assignee` denotes the technician currently assigned to the action. When an action is transitioned to Completed, `completedById` is recorded as the user who finalized the work.
+6. **Future Dating on Planned Actions**: To allow technicians to plan maintenance, `PLANNED` actions may specify future dates. The strict clock-skew restriction (not more than 5 minutes in the future) applies exclusively to `COMPLETED` actions. When completing a planned action, `actionAt` can be brought forward to reflect execution time.
