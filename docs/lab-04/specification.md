@@ -1,4 +1,4 @@
-﻿# Lab 4 Sprint Engineering Specification
+# Lab 4 Sprint Engineering Specification
 
 Sprint 4 engineering contract for TokTickIT. It extends `docs/lab-03/specification.md`; every Lab 1, 2, and 3 requirement, rule, and API remains in force unless this document explicitly evolves it. Full technical details are defined in `api-spec.md` (REST contract), `ui-spec.md` (screens and layouts), and `tests.md` (planned tests and traceability).
 
@@ -109,7 +109,7 @@ Note: Both Requesters and Staff navigate to the single `/dashboard` route in the
 - **BR-14**: Reopening a Ticket immediately clears any active "problem appears resolved" flag.
 - **BR-15**: The Requester indication that the problem appears resolved is purely advisory and does not change Ticket status.
 - **BR-16**: Every successful status transition appends a permanent record in `TicketStatusHistory` recording from-status, to-status, changed-by user, optional reason, and timestamp.
-- **BR-17**: Status transitions, assignments, and Action updates must supply `expectedVersion`. If the record has been updated concurrently (`version != expectedVersion`), the update is rejected with HTTP 409 `STALE_UPDATE`.
+- **BR-17**: Status transitions (`PATCH /api/staff/tickets/:id/status`), assignments (`PATCH /api/staff/tickets/:id/assign`), and Action updates (`PATCH /api/staff/tickets/:id/actions/:actionId`) must supply `expectedVersion`. If the record has been updated concurrently (`version != expectedVersion`), the update is rejected with HTTP 409 `STALE_UPDATE`. For Requester reopen (`POST /api/tickets/:id/reopen`), `expectedVersion` is optional; if provided and mismatched with the current ticket version, it returns HTTP 409 `STALE_UPDATE`.
 - **BR-18**: Assigning or reassigning a ticket owner (`PATCH /api/staff/tickets/:id/assign`) is prohibited on terminal or resolved tickets (`RESOLVED`, `CLOSED`, `CANCELLED`) to prevent bypassing the Resolution Gate owner requirement. Attempts return HTTP 400 `TICKET_LOCKED`.
 
 ### Dashboard Metric Rules
@@ -172,11 +172,11 @@ Base path: `/api`. Error responses follow standard `{ error: { code, message, fi
 - `PATCH /api/staff/tickets/:id/actions/:actionId`: Edits Planned action, completes it (recording `completedById`), or cancels it. Updatable fields: `actionAt`, `description`, `result`, `status`, `followUpRequired`, `followUpNote`, `attachmentNotes`, `assigneeId`. Requires `expectedVersion`. Modifying Completed/Cancelled action returns 400 `ACTION_IMMUTABLE`.
 
 ### 8.2. Ticket Workflow Endpoints
-- `GET /api/tickets/:id`: Returns ticket details, `version`, `allowedTransitions`, and `resolutionGate: { ok, reasons }`.
+- `GET /api/tickets/:id`: Returns ticket details, `version`, `allowedTransitions`, and `resolutionGate: { ok, reasons }`. Permitted to IT Staff/Admin for any ticket, and Requesters for owned tickets (non-owned returns 404).
 - `PATCH /api/staff/tickets/:id/status`: Transitions status with `expectedVersion`. Enforces matrix and Resolution Gate (returns 400 `RESOLUTION_GATE_NOT_MET` with reasons).
 - `PATCH /api/staff/tickets/:id/assign`: Updates owner and increments `version`. Blocked on `RESOLVED`/`CLOSED`/`CANCELLED` tickets with 400 `TICKET_LOCKED`.
 - `POST /api/tickets/:id/reopen`: Reopens resolved or closed ticket for owning requester, accepting optional `reason` and optional `expectedVersion`. Clears advisory resolved flag and increments version.
-- `GET /api/tickets/:id/history`: Returns audit trail sorted by `changedAt asc`.
+- `GET /api/tickets/:id/history`: Returns audit trail sorted by `changedAt asc`. Permitted to IT Staff/Admin for any ticket, and Requesters for owned tickets (non-owned returns 404).
 
 ### 8.3. Dashboard Endpoints
 - `GET /api/dashboard/requester`: Returns `myOpenTickets`, `waitingForRequester`, `inProgress`, `resolved`, `closed`, `attentionTickets`, and `recentTickets`.
@@ -228,3 +228,4 @@ Base path: `/api`. Error responses follow standard `{ error: { code, message, fi
 5. **Performed by vs Assignee vs Completed by**: `performedBy` permanently denotes the creator who initially logged the action. The `assignee` denotes the technician currently assigned to the action. When an action is transitioned to Completed, `completedById` is recorded as the user who finalized the work.
 6. **Future Dating on Planned Actions**: To allow technicians to plan maintenance, `PLANNED` actions may specify future dates. The strict clock-skew restriction (not more than 5 minutes in the future) applies exclusively to `COMPLETED` actions. When completing a planned action, if `actionAt` is omitted, it resets automatically to the current timestamp.
 7. **Resolved Ticket Invariant on Planned Actions**: Adding a `PLANNED` Action to a Ticket already in `RESOLVED` status is prohibited (returns `TICKET_LOCKED`) to prevent retroactively violating the Resolution Gate condition. To schedule further work, the Ticket must first be reopened.
+8. **Ticket Detail Route Guard Modernization**: In Lab 2, `GET /api/tickets/:id` was protected with `requireActiveRequester`. For Lab 4, the ticket detail endpoint (as well as `/actions` and `/history`) operates under an expanded role-aware guard: authenticated IT Staff and Administrators may view any ticket, while Requesters are restricted to tickets they own (returning HTTP 404 for non-existent or unowned tickets).

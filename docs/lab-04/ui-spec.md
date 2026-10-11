@@ -1,4 +1,4 @@
-﻿# Lab 4 UI Specification: Zen Green Design and Final Application Shell
+# Lab 4 UI Specification: Zen Green Design and Final Application Shell
 
 This document defines user interface layouts, design tokens, responsive behavior, interaction states, and accessibility standards for Sprint 4.
 
@@ -113,7 +113,7 @@ Located between the Ticket Summary metadata card and the Comments section:
 | Viewport Category | Width | Layout Adjustments |
 | :--- | :--- | :--- |
 | **Desktop** | 1280px | Full two-column dashboard grid; table layouts for queues and actions; full top navigation bar. |
-| **Tablet** | 768px | Metric cards wrap into 2x2 grid; sidebar quick actions stack below main content; tables enable horizontal scroll wrappers without page-level overflow. |
+| **Tablet** | 768px | Metric cards wrap into 2-column grid; sidebar quick actions stack below main content; tables enable horizontal scroll wrappers without page-level overflow. |
 | **Mobile** | 375px | Single-column stacked cards; action table transforms into card view; hamburger mobile menu replaces top bar; all inputs span 100% container width. |
 
 ---

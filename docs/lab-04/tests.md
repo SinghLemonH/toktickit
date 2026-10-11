@@ -1,4 +1,4 @@
-﻿# Lab 4 Test Plan and Traceability Matrix
+# Lab 4 Test Plan and Traceability Matrix
 
 ## 1. Test Strategy
 
@@ -47,6 +47,7 @@ The following intentional contract changes evolved earlier sprint behavior:
 | **API-15** | API | BR-08 | Create Completed Action with future date > 5 minutes | HTTP 400 `VALIDATION_ERROR`; rejected | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
 | **API-16** | API | FR-01 | Create Action directly as Completed with result | HTTP 201 Created; status Completed and `completedById` recorded | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
 | **API-17** | API | BR-08 | Complete future Planned Action without actionAt | HTTP 200 OK; actionAt automatically resets to current time | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
+| **API-18** | API | BR-10 | Add Planned Action to Resolved ticket | HTTP 400 `TICKET_LOCKED`; planned action rejected | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
 | **SEC-01** | Security | AC-05, BR-03 | Requester attempts to call staff action endpoints | HTTP 403 Forbidden; no records written | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
 | **SEC-02** | Security | AC-06, FR-05 | Requester reads actions of own vs other ticket | Own ticket: HTTP 200; Other ticket: HTTP 404 | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
 | **WF-01** | API | AC-07, FR-07, BR-11 | Transition to Resolved failing resolution gate | HTTP 400 `RESOLUTION_GATE_NOT_MET` with reasons | `server/tests/lab-04/ticket-workflow.api.test.ts` | Planned |

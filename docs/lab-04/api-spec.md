@@ -1,4 +1,4 @@
-﻿# Lab 4 REST API Specification
+# Lab 4 REST API Specification
 
 Base path: `/api`. All existing endpoints from Lab 1, Lab 2, and Lab 3 remain active with unchanged contracts except where explicitly updated below.
 
@@ -123,7 +123,7 @@ Creates a new Action Taken under a Ticket.
   - `clientRequestId`: UUID string. If a row with this `(ticketId, clientRequestId)` already exists, the server returns HTTP 200 with the existing row (idempotent replay).
 - **Response 201 Created**: Action created successfully.
 - **Response 200 OK**: Idempotent replay of previously created Action.
-- **Response 400 Bad Request**: Validation failure or Ticket is in Closed/Cancelled status (`TICKET_LOCKED`).
+- **Response 400 Bad Request**: Validation failure, Ticket is in Closed/Cancelled status, or attempting to add a `PLANNED` Action to a `RESOLVED` Ticket (`TICKET_LOCKED`).
 
 ### 2.3. PATCH /api/staff/tickets/:id/actions/:actionId
 Edits a planned action, completes it, or cancels it.
@@ -158,6 +158,10 @@ Edits a planned action, completes it, or cancels it.
 
 ### 3.1. GET /api/tickets/:id (Updated Contract)
 Retrieves ticket operational details.
+
+- **Authorization**:
+  - `IT_STAFF`, `ADMINISTRATOR`: Permitted on any ticket.
+  - `REQUESTER`: Permitted only if `ticket.requesterId == req.user.id`. Non-owned tickets or non-existent tickets return HTTP 404 Not Found.
 - Returns all Lab 2/3 fields plus:
   - `version`: Current integer version for optimistic locking.
   - `allowedTransitions`: Array of statuses permitted from the current status for the authenticated caller role.
@@ -233,7 +237,10 @@ Allows Requesters to reopen their own Resolved or Closed tickets.
 ### 3.5. GET /api/tickets/:id/history
 Retrieves the append-only status audit trail.
 
-- **Authorization**: Permitted to any user authorized to view the ticket.
+- **Authorization**:
+  - `IT_STAFF`, `ADMINISTRATOR`: Permitted on any ticket.
+  - `REQUESTER`: Permitted only if `ticket.requesterId == req.user.id`.
+- **Response 404 Not Found**: Ticket does not exist, or caller is a Requester who does not own the ticket.
 - **Response 200 OK**:
 ```json
 [
