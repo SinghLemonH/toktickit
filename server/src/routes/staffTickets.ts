@@ -41,10 +41,11 @@ staffTicketsRouter.get(
           ? req.query.q.trim()
           : "";
 
-      const status = req.query.status as TicketStatus | undefined;
+      const rawStatus = (req.query.currentStatus || req.query.status) as string | undefined;
+      const statusGroup = req.query.statusGroup as string | undefined;
       const categoryId = req.query.categoryId ? Number(req.query.categoryId) : undefined;
       const requestedPriority = req.query.requestedPriority as Priority | undefined;
-      const itPriority = req.query.itPriority as Priority | undefined;
+      const itPriorityRaw = req.query.itPriority as string | undefined;
       const assignedTo = req.query.assignedTo as string | undefined;
 
       const page = Math.max(1, Number(req.query.page) || 1);
@@ -58,8 +59,25 @@ staffTicketsRouter.get(
 
       const where: Prisma.TicketWhereInput = {};
 
-      if (status) {
-        where.currentStatus = status;
+      const ACTIVE_STATUSES: TicketStatus[] = [
+        "NEW",
+        "OPEN",
+        "IN_PROGRESS",
+        "WAITING_FOR_REQUESTER",
+        "REOPENED",
+        "PENDING",
+      ];
+
+      if (rawStatus && statusGroup === "active") {
+        if (ACTIVE_STATUSES.includes(rawStatus as TicketStatus)) {
+          where.currentStatus = rawStatus as TicketStatus;
+        } else {
+          where.currentStatus = { in: [] };
+        }
+      } else if (rawStatus) {
+        where.currentStatus = rawStatus as TicketStatus;
+      } else if (statusGroup === "active") {
+        where.currentStatus = { in: ACTIVE_STATUSES };
       }
 
       if (categoryId && !Number.isNaN(categoryId)) {
@@ -70,8 +88,10 @@ staffTicketsRouter.get(
         where.requestedPriority = requestedPriority;
       }
 
-      if (itPriority && ["LOW", "MEDIUM", "HIGH"].includes(itPriority)) {
-        where.itPriority = itPriority;
+      if (itPriorityRaw === "none") {
+        where.itPriority = null;
+      } else if (itPriorityRaw && ["LOW", "MEDIUM", "HIGH"].includes(itPriorityRaw)) {
+        where.itPriority = itPriorityRaw as Priority;
       }
 
       if (assignedTo) {
@@ -111,6 +131,8 @@ staffTicketsRouter.get(
       return res.status(200).json({
         tickets,
         data: tickets,
+        total,
+        totalItems: total,
         pagination: {
           totalItems: total,
           total,

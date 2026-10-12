@@ -60,14 +60,14 @@ The following intentional contract changes evolved earlier sprint behavior:
 | **WF-08** | API | BR-18 | Attempt to reassign owner on Resolved ticket | HTTP 400 `TICKET_LOCKED`; assignment blocked | `server/tests/lab-04/ticket-workflow.api.test.ts` | Passed |
 | **WF-09** | API | AC-10, BR-17 | Assign ticket owner with stale `expectedVersion` | HTTP 409 `STALE_UPDATE`; assignment rejected | `server/tests/lab-04/ticket-workflow.api.test.ts` | Passed |
 | **WF-10** | API | AC-10, BR-17 | Reopen ticket with stale `expectedVersion` | HTTP 409 `STALE_UPDATE`; reopen rejected | `server/tests/lab-04/ticket-workflow.api.test.ts` | Passed |
-| **DASH-01** | API | AC-02, BR-22 | Requester dashboard metrics isolation | HTTP 200; counts scoped only to caller tickets | `server/tests/lab-04/requester-dashboard.api.test.ts` | Planned |
-| **DASH-02** | API | FR-12, BR-19, BR-20 | Requester metric calculation accuracy | Counts match independent database queries | `server/tests/lab-04/requester-dashboard.api.test.ts` | Planned |
-| **DASH-03** | API | AC-14, BR-23 | Requester dashboard for user with 0 tickets | HTTP 200; counts = 0; attentionTickets = []; recentTickets = [] | `server/tests/lab-04/requester-dashboard.api.test.ts` | Planned |
-| **DASH-04** | API | AC-13, FR-13, BR-21 | Staff dashboard operational calculations (6 cards) | Active counts match database `groupBy` queries | `server/tests/lab-04/staff-dashboard.api.test.ts` | Planned |
-| **DASH-05** | API | AC-13, FR-15, FR-16 | Drill-down parity check with `statusGroup=active` | Filtered queue count equals dashboard card count | `server/tests/lab-04/staff-dashboard.api.test.ts` | Planned |
-| **DASH-06** | API | FR-14 | Administrator extra user account metrics | `userCounts` returned for Admin; absent for Staff | `server/tests/lab-04/staff-dashboard.api.test.ts` | Planned |
-| **DASH-SEC** | Security | BR-22 | Dashboard role authorization guards | Requester accessing staff dashboard gets 403; unauthenticated gets 401 | `server/tests/lab-04/staff-dashboard.api.test.ts` | Planned |
-| **PERF-01** | Smoke | BR-21 | Dashboard endpoint latency budget | Response time < 500ms on seeded dataset | `server/tests/lab-04/performance-smoke.test.ts` | Planned |
+| **DASH-01** | API | AC-02, BR-22 | Requester dashboard metrics isolation | HTTP 200; counts scoped only to caller tickets | `server/tests/lab-04/requester-dashboard.api.test.ts` | Passed |
+| **DASH-02** | API | FR-12, BR-19, BR-20 | Requester metric calculation accuracy | Counts match independent database queries | `server/tests/lab-04/requester-dashboard.api.test.ts` | Passed |
+| **DASH-03** | API | AC-14, BR-23 | Requester dashboard for user with 0 tickets | HTTP 200; counts = 0; attentionTickets = []; recentTickets = [] | `server/tests/lab-04/requester-dashboard.api.test.ts` | Passed |
+| **DASH-04** | API | AC-13, FR-13, BR-21 | Staff dashboard operational calculations (6 cards) | Active counts match database `groupBy` queries | `server/tests/lab-04/staff-dashboard.api.test.ts` | Passed |
+| **DASH-05** | API | AC-13, FR-15, FR-16 | Drill-down parity check with `statusGroup=active` | Filtered queue count equals dashboard card count | `server/tests/lab-04/staff-dashboard.api.test.ts` | Passed |
+| **DASH-06** | API | FR-14 | Administrator extra user account metrics | `userCounts` returned for Admin; absent for Staff | `server/tests/lab-04/staff-dashboard.api.test.ts` | Passed |
+| **DASH-SEC** | Security | BR-22 | Dashboard role authorization guards | Requester accessing staff dashboard gets 403; unauthenticated gets 401 | `server/tests/lab-04/staff-dashboard.api.test.ts` | Passed |
+| **PERF-01** | Smoke | BR-21 | Dashboard endpoint latency budget | Response time < 500ms on seeded dataset | `server/tests/lab-04/performance-smoke.test.ts` | Passed |
 | **MIG-01** | Migration | AC-16, BR-26 | Additive migration preserves existing data and rollback | Executed in isolated temp database/schema; tables and counts verified | `server/tests/lab-04/migration-seed.test.ts` | Passed |
 | **MIG-02** | Migration | BR-26 | Seed idempotency verification | Running seed twice produces identical row counts | `server/tests/lab-04/migration-seed.test.ts` | Passed |
 | **UI-01** | UI | FR-13, FR-15 | Staff dashboard metric cards (6 cards) and navigation | Cards display numbers and valid drill-down links | `client/tests/lab-04/StaffDashboard.test.tsx` | Planned |
