@@ -5,6 +5,7 @@ import { getPrisma } from "../../src/prisma.js";
 import { signSessionToken } from "../../src/auth/session.js";
 
 describe("Staff Ticket Operations & Details APIs (API-12, API-13, API-14)", () => {
+  const prisma = getPrisma();
   let requesterCookie: string;
   let itStaff1Cookie: string;
   let itStaff2Cookie: string;
@@ -117,19 +118,21 @@ describe("Staff Ticket Operations & Details APIs (API-12, API-13, API-14)", () =
 
   describe("PATCH /api/staff/tickets/:id/assign (API-12, AC-12: Claim & Reassign)", () => {
     it("rejects Requester access with 403", async () => {
+      const ticket = await prisma.ticket.findUnique({ where: { id: operationTicketId } });
       const res = await request(app)
         .patch(`/api/staff/tickets/${operationTicketId}/assign`)
         .set("Cookie", requesterCookie)
-        .send({ assignedToId: itStaff1Id });
+        .send({ assignedToId: itStaff1Id, expectedVersion: ticket!.version });
 
       expect(res.status).toBe(403);
     });
 
     it("allows IT Staff to claim an unassigned ticket", async () => {
+      const ticket = await prisma.ticket.findUnique({ where: { id: operationTicketId } });
       const res = await request(app)
         .patch(`/api/staff/tickets/${operationTicketId}/assign`)
         .set("Cookie", itStaff1Cookie)
-        .send({ assignedToId: itStaff1Id });
+        .send({ assignedToId: itStaff1Id, expectedVersion: ticket!.version });
 
       expect(res.status).toBe(200);
       expect(res.body.assignedToId).toBe(itStaff1Id);
@@ -137,10 +140,11 @@ describe("Staff Ticket Operations & Details APIs (API-12, API-13, API-14)", () =
     });
 
     it("allows IT Staff to reassign ticket to another active IT Staff member", async () => {
+      const ticket = await prisma.ticket.findUnique({ where: { id: operationTicketId } });
       const res = await request(app)
         .patch(`/api/staff/tickets/${operationTicketId}/assign`)
         .set("Cookie", itStaff1Cookie)
-        .send({ assignedToId: itStaff2Id });
+        .send({ assignedToId: itStaff2Id, expectedVersion: ticket!.version });
 
       expect(res.status).toBe(200);
       expect(res.body.assignedToId).toBe(itStaff2Id);
@@ -148,28 +152,31 @@ describe("Staff Ticket Operations & Details APIs (API-12, API-13, API-14)", () =
     });
 
     it("rejects assignment to an inactive staff member with 400 Bad Request", async () => {
+      const ticket = await prisma.ticket.findUnique({ where: { id: operationTicketId } });
       const res = await request(app)
         .patch(`/api/staff/tickets/${operationTicketId}/assign`)
         .set("Cookie", itStaff1Cookie)
-        .send({ assignedToId: inactiveStaffId });
+        .send({ assignedToId: inactiveStaffId, expectedVersion: ticket!.version });
 
       expect(res.status).toBe(400);
     });
 
     it("rejects assignment to a Requester user with 400 Bad Request", async () => {
+      const ticket = await prisma.ticket.findUnique({ where: { id: operationTicketId } });
       const res = await request(app)
         .patch(`/api/staff/tickets/${operationTicketId}/assign`)
         .set("Cookie", itStaff1Cookie)
-        .send({ assignedToId: requesterUserId });
+        .send({ assignedToId: requesterUserId, expectedVersion: ticket!.version });
 
       expect(res.status).toBe(400);
     });
 
     it("allows unassigning ticket by passing null", async () => {
+      const ticket = await prisma.ticket.findUnique({ where: { id: operationTicketId } });
       const res = await request(app)
         .patch(`/api/staff/tickets/${operationTicketId}/assign`)
         .set("Cookie", itStaff1Cookie)
-        .send({ assignedToId: null });
+        .send({ assignedToId: null, expectedVersion: ticket!.version });
 
       expect(res.status).toBe(200);
       expect(res.body.assignedToId).toBeNull();
@@ -210,87 +217,116 @@ describe("Staff Ticket Operations & Details APIs (API-12, API-13, API-14)", () =
 
   describe("PATCH /api/staff/tickets/:id/status (API-14, AC-14: Permitted Status Transitions BR-15)", () => {
     it("rejects Requester access with 403", async () => {
+      const ticket = await prisma.ticket.findUnique({ where: { id: operationTicketId } });
       const res = await request(app)
         .patch(`/api/staff/tickets/${operationTicketId}/status`)
         .set("Cookie", requesterCookie)
-        .send({ status: "OPEN" });
+        .send({ status: "OPEN", expectedVersion: ticket!.version });
 
       expect(res.status).toBe(403);
     });
 
     it("rejects illegal direct transition from NEW to CLOSED with 400 Bad Request", async () => {
+      const ticket = await prisma.ticket.findUnique({ where: { id: operationTicketId } });
       const res = await request(app)
         .patch(`/api/staff/tickets/${operationTicketId}/status`)
         .set("Cookie", itStaff1Cookie)
-        .send({ status: "CLOSED" });
+        .send({ status: "CLOSED", expectedVersion: ticket!.version });
 
       expect(res.status).toBe(400);
     });
 
     it("executes valid transition from NEW to OPEN", async () => {
+      const ticket = await prisma.ticket.findUnique({ where: { id: operationTicketId } });
       const res = await request(app)
         .patch(`/api/staff/tickets/${operationTicketId}/status`)
         .set("Cookie", itStaff1Cookie)
-        .send({ status: "OPEN" });
+        .send({ status: "OPEN", expectedVersion: ticket!.version });
 
       expect(res.status).toBe(200);
       expect(res.body.currentStatus).toBe("OPEN");
     });
 
     it("executes valid transition from OPEN to IN_PROGRESS", async () => {
+      const ticket = await prisma.ticket.findUnique({ where: { id: operationTicketId } });
       const res = await request(app)
         .patch(`/api/staff/tickets/${operationTicketId}/status`)
         .set("Cookie", itStaff1Cookie)
-        .send({ status: "IN_PROGRESS" });
+        .send({ status: "IN_PROGRESS", expectedVersion: ticket!.version });
 
       expect(res.status).toBe(200);
       expect(res.body.currentStatus).toBe("IN_PROGRESS");
     });
 
     it("executes valid transition from IN_PROGRESS to WAITING_FOR_REQUESTER", async () => {
+      const ticket = await prisma.ticket.findUnique({ where: { id: operationTicketId } });
       const res = await request(app)
         .patch(`/api/staff/tickets/${operationTicketId}/status`)
         .set("Cookie", itStaff1Cookie)
-        .send({ status: "WAITING_FOR_REQUESTER" });
+        .send({ status: "WAITING_FOR_REQUESTER", expectedVersion: ticket!.version });
 
       expect(res.status).toBe(200);
       expect(res.body.currentStatus).toBe("WAITING_FOR_REQUESTER");
     });
 
     it("executes valid transition from WAITING_FOR_REQUESTER to RESOLVED", async () => {
+      // Per Lab 4 Resolution Gate: Ticket must have an assigned owner and at least one COMPLETED action taken
+      await prisma.ticket.update({
+        where: { id: operationTicketId },
+        data: { assignedToId: itStaff1Id },
+      });
+
+      await prisma.actionTaken.create({
+        data: {
+          ticketId: operationTicketId,
+          performedById: itStaff1Id,
+          assigneeId: itStaff1Id,
+          completedById: itStaff1Id,
+          actionAt: new Date(),
+          description: "Diagnosed hardware issue and repaired components.",
+          result: "Hardware operational.",
+          status: "COMPLETED",
+          clientRequestId: `lab3-test-action-${Date.now()}`,
+        },
+      });
+
+      const ticket = await prisma.ticket.findUnique({ where: { id: operationTicketId } });
       const res = await request(app)
         .patch(`/api/staff/tickets/${operationTicketId}/status`)
         .set("Cookie", itStaff1Cookie)
-        .send({ status: "RESOLVED" });
+        .send({ status: "RESOLVED", expectedVersion: ticket!.version });
 
       expect(res.status).toBe(200);
       expect(res.body.currentStatus).toBe("RESOLVED");
     });
 
     it("rejects illegal transition from RESOLVED directly back to IN_PROGRESS with 400", async () => {
+      const ticket = await prisma.ticket.findUnique({ where: { id: operationTicketId } });
       const res = await request(app)
         .patch(`/api/staff/tickets/${operationTicketId}/status`)
         .set("Cookie", itStaff1Cookie)
-        .send({ status: "IN_PROGRESS" });
+        .send({ status: "IN_PROGRESS", expectedVersion: ticket!.version });
 
       expect(res.status).toBe(400);
     });
 
     it("executes valid transition from RESOLVED to CLOSED", async () => {
+      const ticket = await prisma.ticket.findUnique({ where: { id: operationTicketId } });
       const res = await request(app)
         .patch(`/api/staff/tickets/${operationTicketId}/status`)
         .set("Cookie", itStaff1Cookie)
-        .send({ status: "CLOSED" });
+        .send({ status: "CLOSED", expectedVersion: ticket!.version });
 
       expect(res.status).toBe(200);
       expect(res.body.currentStatus).toBe("CLOSED");
     });
 
     it("executes valid transition from CLOSED to REOPENED", async () => {
+      const ticket = await prisma.ticket.findUnique({ where: { id: operationTicketId } });
       const res = await request(app)
         .patch(`/api/staff/tickets/${operationTicketId}/status`)
         .set("Cookie", itStaff1Cookie)
-        .send({ status: "REOPENED" });
+        .send({ status: "REOPENED", expectedVersion: ticket!.version });
 
       expect(res.status).toBe(200);
       expect(res.body.currentStatus).toBe("REOPENED");

@@ -193,9 +193,12 @@ export interface TicketDetail {
   requestedPriority: "LOW" | "MEDIUM" | "HIGH";
   itPriority: string | null;
   currentStatus: string;
-  isProblemResolvedIndicated: boolean;
+  isProblemResolvedIndicated?: boolean;
   assignedToId?: number | null;
   assignedTo?: { id: number; name: string; email?: string; role?: string } | null;
+  version?: number;
+  allowedTransitions?: string[];
+  resolutionGate?: { ok: boolean; reasons: string[] };
   attachments: AttachmentMetadata[];
 }
 
@@ -433,13 +436,18 @@ export async function getStaffUsers(): Promise<StaffUser[]> {
 
 export async function assignStaffTicket(
   ticketId: number,
-  assignedToId: number | null
+  assignedToId: number | null,
+  expectedVersion?: number
 ): Promise<TicketDetail> {
+  const body: { assignedToId: number | null; expectedVersion?: number } = { assignedToId };
+  if (expectedVersion !== undefined) {
+    body.expectedVersion = expectedVersion;
+  }
   const res = await fetch(`${API_URL}/api/staff/tickets/${ticketId}/assign`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
-    body: JSON.stringify({ assignedToId }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
@@ -467,13 +475,18 @@ export async function updateTicketItPriority(
 
 export async function updateTicketStatus(
   ticketId: number,
-  status: string
+  status: string,
+  expectedVersion?: number
 ): Promise<TicketDetail> {
+  const body: { status: string; expectedVersion?: number } = { status };
+  if (expectedVersion !== undefined) {
+    body.expectedVersion = expectedVersion;
+  }
   const res = await fetch(`${API_URL}/api/staff/tickets/${ticketId}/status`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
-    body: JSON.stringify({ status }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));

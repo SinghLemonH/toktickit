@@ -1,4 +1,4 @@
-﻿import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import request from "supertest";
 import { app } from "../../src/app.js";
 import { getPrisma } from "../../src/prisma.js";
@@ -48,7 +48,7 @@ describe("Authentication & Password Change APIs (Issue #31)", () => {
       // Verify Set-Cookie header
       const cookies = res.headers["set-cookie"];
       expect(cookies).toBeDefined();
-      const sessionCookie = (cookies as string[]).find((c) => c.startsWith("toktickit_session="));
+      const sessionCookie = (cookies as unknown as string[]).find((c) => c.startsWith("toktickit_session="));
       expect(sessionCookie).toBeDefined();
       expect(sessionCookie).toContain("HttpOnly");
       expect(sessionCookie).toContain("Path=/");
@@ -242,7 +242,7 @@ describe("Authentication & Password Change APIs (Issue #31)", () => {
       // Verify cookie is cleared
       const logoutCookies = logoutRes.headers["set-cookie"];
       expect(logoutCookies).toBeDefined();
-      const clearedCookie = (logoutCookies as string[]).find((c) =>
+      const clearedCookie = (logoutCookies as unknown as string[]).find((c) =>
         c.startsWith("toktickit_session=")
       );
       expect(clearedCookie).toBeDefined();

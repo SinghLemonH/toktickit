@@ -150,7 +150,11 @@ export default function StaffTicketDetail() {
   async function handleClaimTicket() {
     if (!ticket || !user) return;
     try {
-      await assignStaffTicket(ticket.id, user.id);
+      if (ticket.version !== undefined) {
+        await assignStaffTicket(ticket.id, user.id, ticket.version);
+      } else {
+        await assignStaffTicket(ticket.id, user.id);
+      }
       await loadTicketData();
       showSuccess("You have claimed this ticket.");
     } catch (err: any) {
@@ -163,7 +167,11 @@ export default function StaffTicketDetail() {
     if (!ticket) return;
     const targetId = selectedAssignee ? Number(selectedAssignee) : null;
     try {
-      await assignStaffTicket(ticket.id, targetId);
+      if (ticket.version !== undefined) {
+        await assignStaffTicket(ticket.id, targetId, ticket.version);
+      } else {
+        await assignStaffTicket(ticket.id, targetId);
+      }
       await loadTicketData();
       showSuccess(targetId ? "Ticket reassigned successfully." : "Ticket unassigned.");
     } catch (err: any) {
@@ -187,7 +195,11 @@ export default function StaffTicketDetail() {
   async function handleConfirmStatusChange() {
     if (!ticket || !selectedStatus) return;
     try {
-      await updateTicketStatus(ticket.id, selectedStatus);
+      if (ticket.version !== undefined) {
+        await updateTicketStatus(ticket.id, selectedStatus, ticket.version);
+      } else {
+        await updateTicketStatus(ticket.id, selectedStatus);
+      }
       await loadTicketData();
       setIsStatusModalOpen(false);
       showSuccess(`Ticket status updated to ${selectedStatus.replace(/_/g, " ")}.`);
@@ -370,12 +382,12 @@ export default function StaffTicketDetail() {
                     className="list-group-item d-flex justify-content-between align-items-center py-2"
                   >
                     <div>
-                      <span className="fw-medium">{att.originalFileName}</span>
+                      <span className="fw-medium">{att.originalFilename}</span>
                       <span className="text-muted small ms-2">
-                        ({Math.round(att.fileSizeBytes / 1024)} KB)
+                        ({Math.round(att.sizeBytes / 1024)} KB)
                       </span>
                     </div>
-                    {att.status === "ACTIVE" ? (
+                    {att.removedAt === null ? (
                       <a
                         href={`/api/attachments/${att.id}/download`}
                         className="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1"
