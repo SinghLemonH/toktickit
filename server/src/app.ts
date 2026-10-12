@@ -14,6 +14,8 @@ import { adminUsersRouter } from "./routes/adminUsers.js";
 import actionsTakenRouter from "./routes/actionsTaken.js";
 import { upload, UPLOAD_DIR, MAX_ACTIVE_ATTACHMENTS } from "./upload.js";
 import { getNextTicketNumber } from "./lib/ticketNumber.js";
+import { getAllowedTransitions } from "./domain/workflow.js";
+import { evaluateResolutionGate } from "./domain/resolutionGate.js";
 
 export const app = express();
 
@@ -332,6 +334,21 @@ app.get(
         return res.status(404).json({ error: { code: "NOT_FOUND", message: "Ticket not found." } });
       }
 
+      // Compute role-appropriate allowed transitions and resolution gate
+      const callerRole = req.user ? req.user.role : "REQUESTER";
+      const isOwner = req.requester ? ticket.requesterId === req.requester.id : false;
+      const allowedTransitions = getAllowedTransitions(ticket.currentStatus, callerRole, isOwner);
+
+      // Fetch actions for resolution gate calculation
+      const actions = await prisma.actionTaken.findMany({
+        where: { ticketId: ticket.id },
+        select: { status: true },
+      });
+      const resolutionGate = evaluateResolutionGate(
+        { assignedToId: ticket.assignedToId },
+        actions
+      );
+
       res.status(200).json({
         id: ticket.id,
         ticketNumber: ticket.ticketNumber,
@@ -348,6 +365,9 @@ app.get(
         isProblemResolvedIndicated: ticket.isProblemResolvedIndicated,
         assignedToId: ticket.assignedToId,
         assignedTo: ticket.assignedTo,
+        version: ticket.version,
+        allowedTransitions,
+        resolutionGate,
         attachments: ticket.attachments,
       });
     } catch (err) {
@@ -566,6 +586,176 @@ app.delete(
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Unable to remove attachment." } });
+    }
+  }
+);
+
+// POST /api/tickets/:id/reopen
+// Allows Requesters to reopen their own Resolved or Closed tickets (BR-13, BR-14, BR-16, BR-17)
+app.post(
+  "/api/tickets/:id/reopen",
+  requireActiveRequester,
+  async (req: RequestWithRequester, res: Response) => {
+    const ticketId = Number(req.params.id);
+    if (Number.isNaN(ticketId)) {
+      return res.status(404).json({ error: { code: "NOT_FOUND", message: "Ticket not found." } });
+    }
+
+    const { reason, expectedVersion } = req.body || {};
+
+    if (
+      expectedVersion !== undefined &&
+      expectedVersion !== null &&
+      !Number.isInteger(expectedVersion)
+    ) {
+      return res.status(400).json({
+        error: { code: "VALIDATION_ERROR", message: "expectedVersion must be an integer." },
+      });
+    }
+
+    try {
+      const prisma = getPrisma();
+      const isStaffOrAdmin =
+        req.user && (req.user.role === "IT_STAFF" || req.user.role === "ADMINISTRATOR");
+
+      // Staff or Admin cannot use this endpoint if intended for Requester ownership, or Requester must own it
+      // Spec: Authorization: REQUESTER (must own ticket)
+      const ticket = await prisma.ticket.findFirst({
+        where: { id: ticketId, requesterId: req.requester!.id },
+      });
+
+      if (!ticket) {
+        return res.status(404).json({ error: { code: "NOT_FOUND", message: "Ticket not found." } });
+      }
+
+      if (ticket.currentStatus !== "RESOLVED" && ticket.currentStatus !== "CLOSED") {
+        return res.status(400).json({
+          error: {
+            code: "INVALID_STATUS_TRANSITION",
+            message: `Cannot reopen ticket in ${ticket.currentStatus} status. Reopen is only permitted on RESOLVED or CLOSED tickets.`,
+          },
+        });
+      }
+
+      const callerId = req.user ? req.user.id : ticket.requesterId;
+
+      const result = await prisma.$transaction(async (tx) => {
+        if (expectedVersion !== undefined && expectedVersion !== null) {
+          const updateResult = await tx.ticket.updateMany({
+            where: {
+              id: ticketId,
+              version: expectedVersion,
+            },
+            data: {
+              currentStatus: "REOPENED",
+              isProblemResolvedIndicated: false,
+              version: { increment: 1 },
+            },
+          });
+
+          if (updateResult.count === 0) {
+            return null;
+          }
+        } else {
+          await tx.ticket.update({
+            where: { id: ticketId },
+            data: {
+              currentStatus: "REOPENED",
+              isProblemResolvedIndicated: false,
+              version: { increment: 1 },
+            },
+          });
+        }
+
+        await tx.ticketStatusHistory.create({
+          data: {
+            ticketId,
+            fromStatus: ticket.currentStatus,
+            toStatus: "REOPENED",
+            changedById: callerId,
+            reason: typeof reason === "string" && reason.trim() ? reason.trim() : null,
+          },
+        });
+
+        return tx.ticket.findUnique({
+          where: { id: ticketId },
+          include: {
+            category: { select: { id: true, name: true } },
+            requester: { select: { id: true, name: true, email: true } },
+            assignedTo: { select: { id: true, name: true, email: true, role: true } },
+          },
+        });
+      });
+
+      if (!result) {
+        return res.status(409).json({
+          error: {
+            code: "STALE_UPDATE",
+            message: "Ticket was modified by another operation. Refresh and retry.",
+          },
+        });
+      }
+
+      return res.status(200).json(result);
+    } catch (err) {
+      console.error("Error reopening ticket:", err);
+      return res.status(500).json({
+        error: { code: "INTERNAL_ERROR", message: "Unable to reopen ticket." },
+      });
+    }
+  }
+);
+
+// GET /api/tickets/:id/history
+// Retrieves the append-only status audit trail (BR-16)
+app.get(
+  "/api/tickets/:id/history",
+  requireActiveRequester,
+  async (req: RequestWithRequester, res: Response) => {
+    const ticketId = Number(req.params.id);
+    if (Number.isNaN(ticketId)) {
+      return res.status(404).json({ error: { code: "NOT_FOUND", message: "Ticket not found." } });
+    }
+
+    try {
+      const prisma = getPrisma();
+      const isStaffOrAdmin =
+        req.user && (req.user.role === "IT_STAFF" || req.user.role === "ADMINISTRATOR");
+
+      const ticket = await prisma.ticket.findFirst({
+        where: isStaffOrAdmin
+          ? { id: ticketId }
+          : { id: ticketId, requesterId: req.requester!.id },
+      });
+
+      if (!ticket) {
+        return res.status(404).json({ error: { code: "NOT_FOUND", message: "Ticket not found." } });
+      }
+
+      const history = await prisma.ticketStatusHistory.findMany({
+        where: { ticketId },
+        orderBy: [{ changedAt: "asc" }, { id: "asc" }],
+        select: {
+          id: true,
+          fromStatus: true,
+          toStatus: true,
+          reason: true,
+          changedAt: true,
+          changedBy: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      });
+
+      return res.status(200).json(history);
+    } catch (err) {
+      console.error("Error fetching ticket history:", err);
+      return res.status(500).json({
+        error: { code: "INTERNAL_ERROR", message: "Unable to retrieve ticket history." },
+      });
     }
   }
 );

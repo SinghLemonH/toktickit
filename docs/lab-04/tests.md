@@ -27,8 +27,8 @@ The following intentional contract changes evolved earlier sprint behavior:
 
 | Test ID | Level | Requirement / AC | Description and Verification Target | Expected Result | Automated Test File | Status |
 | :---: | :---: | :---: | :--- | :--- | :--- | :---: |
-| **UNIT-01** | Unit | BR-12, BR-13 | Transition matrix evaluation by role (including PENDING) | Returns true for valid transitions; false for invalid; Cancelled has no exits | `server/tests/lab-04/status-transitions.unit.test.ts` | Planned |
-| **UNIT-02** | Unit | BR-11 | Resolution gate pure evaluation function | Fails when no owner, no completed action, or planned actions exist; passes when satisfied | `server/tests/lab-04/resolution-gate.unit.test.ts` | Planned |
+| **UNIT-01** | Unit | BR-12, BR-13 | Transition matrix evaluation by role (including PENDING) | Returns true for valid transitions; false for invalid; Cancelled has no exits | `server/tests/lab-04/status-transitions.unit.test.ts` | Passed |
+| **UNIT-02** | Unit | BR-11 | Resolution gate pure evaluation function | Fails when no owner, no completed action, or planned actions exist; passes when satisfied | `server/tests/lab-04/resolution-gate.unit.test.ts` | Passed |
 | **UNIT-03** | Unit | BR-06, BR-07, BR-08 | Action Taken input validator | Validates description length, follow-up note conditionally, minute precision on date | `server/tests/lab-04/action-taken.unit.test.ts` | Planned |
 | **API-01** | API | AC-01, FR-01, FR-02 | Create valid Action Taken with authenticated staff | HTTP 201; saved under correct ticket; `performedBy` set to session user | `server/tests/lab-04/actions-taken.api.test.ts` | Passed |
 | **API-02** | API | BR-04 | Attempt to supply spoofed `performedById` | Ignored; creator remains authenticated caller | `server/tests/lab-04/actions-taken.api.test.ts` | Passed |
@@ -50,16 +50,16 @@ The following intentional contract changes evolved earlier sprint behavior:
 | **API-18** | API | BR-10 | Add Planned Action to Resolved ticket | HTTP 400 `TICKET_LOCKED`; planned action rejected | `server/tests/lab-04/actions-taken.api.test.ts` | Passed |
 | **SEC-01** | Security | AC-05, BR-03 | Requester attempts to call staff action endpoints | HTTP 403 Forbidden; no records written | `server/tests/lab-04/actions-taken.api.test.ts` | Passed |
 | **SEC-02** | Security | AC-06, FR-05 | Requester reads actions of own vs other ticket | Own ticket: HTTP 200; Other ticket: HTTP 404 | `server/tests/lab-04/actions-taken.api.test.ts` | Passed |
-| **WF-01** | API | AC-07, FR-07, BR-11 | Transition to Resolved failing resolution gate | HTTP 400 `RESOLUTION_GATE_NOT_MET` with reasons | `server/tests/lab-04/ticket-workflow.api.test.ts` | Planned |
-| **WF-02** | API | AC-08, BR-11, BR-16 | Transition to Resolved satisfying all gate rules | HTTP 200; status updated; history recorded | `server/tests/lab-04/ticket-workflow.api.test.ts` | Planned |
-| **WF-03** | API | AC-09, BR-12 | Transition outside authorized state matrix | HTTP 400 `INVALID_STATUS_TRANSITION`; rejected | `server/tests/lab-04/ticket-workflow.api.test.ts` | Planned |
-| **WF-04** | API | AC-10, FR-10, BR-17 | Status change with outdated `expectedVersion` | HTTP 409 `STALE_UPDATE`; status preserved | `server/tests/lab-04/ticket-workflow.api.test.ts` | Planned |
-| **WF-05** | API | AC-15, FR-08, BR-13 | Requester reopens own Resolved or Closed ticket | HTTP 200; status Reopened; reason recorded; advisory flag cleared | `server/tests/lab-04/ticket-workflow.api.test.ts` | Planned |
-| **WF-06** | API | AC-11, FR-11, BR-15 | Requester sets "problem appears resolved" flag | HTTP 200; flag true; ticket status unchanged | `server/tests/lab-04/ticket-workflow.api.test.ts` | Planned |
-| **WF-07** | API | AC-12, FR-09, BR-16 | Retrieve ticket status audit history | HTTP 200; chronological order; reason included | `server/tests/lab-04/ticket-workflow.api.test.ts` | Planned |
-| **WF-08** | API | BR-18 | Attempt to reassign owner on Resolved ticket | HTTP 400 `TICKET_LOCKED`; assignment blocked | `server/tests/lab-04/ticket-workflow.api.test.ts` | Planned |
-| **WF-09** | API | AC-10, BR-17 | Assign ticket owner with stale `expectedVersion` | HTTP 409 `STALE_UPDATE`; assignment rejected | `server/tests/lab-04/ticket-workflow.api.test.ts` | Planned |
-| **WF-10** | API | AC-10, BR-17 | Reopen ticket with stale `expectedVersion` | HTTP 409 `STALE_UPDATE`; reopen rejected | `server/tests/lab-04/ticket-workflow.api.test.ts` | Planned |
+| **WF-01** | API | AC-07, FR-07, BR-11 | Transition to Resolved failing resolution gate | HTTP 400 `RESOLUTION_GATE_NOT_MET` with reasons | `server/tests/lab-04/ticket-workflow.api.test.ts` | Passed |
+| **WF-02** | API | AC-08, BR-11, BR-16 | Transition to Resolved satisfying all gate rules | HTTP 200; status updated; history recorded | `server/tests/lab-04/ticket-workflow.api.test.ts` | Passed |
+| **WF-03** | API | AC-09, BR-12 | Transition outside authorized state matrix | HTTP 400 `INVALID_STATUS_TRANSITION`; rejected | `server/tests/lab-04/ticket-workflow.api.test.ts` | Passed |
+| **WF-04** | API | AC-10, FR-10, BR-17 | Status change with outdated `expectedVersion` | HTTP 409 `STALE_UPDATE`; status preserved | `server/tests/lab-04/ticket-workflow.api.test.ts` | Passed |
+| **WF-05** | API | AC-15, FR-08, BR-13 | Requester reopens own Resolved or Closed ticket | HTTP 200; status Reopened; reason recorded; advisory flag cleared | `server/tests/lab-04/ticket-workflow.api.test.ts` | Passed |
+| **WF-06** | API | AC-11, FR-11, BR-15 | Requester sets "problem appears resolved" flag | HTTP 200; flag true; ticket status unchanged | `server/tests/lab-04/ticket-workflow.api.test.ts` | Passed |
+| **WF-07** | API | AC-12, FR-09, BR-16 | Retrieve ticket status audit history | HTTP 200; chronological order; reason included | `server/tests/lab-04/ticket-workflow.api.test.ts` | Passed |
+| **WF-08** | API | BR-18 | Attempt to reassign owner on Resolved ticket | HTTP 400 `TICKET_LOCKED`; assignment blocked | `server/tests/lab-04/ticket-workflow.api.test.ts` | Passed |
+| **WF-09** | API | AC-10, BR-17 | Assign ticket owner with stale `expectedVersion` | HTTP 409 `STALE_UPDATE`; assignment rejected | `server/tests/lab-04/ticket-workflow.api.test.ts` | Passed |
+| **WF-10** | API | AC-10, BR-17 | Reopen ticket with stale `expectedVersion` | HTTP 409 `STALE_UPDATE`; reopen rejected | `server/tests/lab-04/ticket-workflow.api.test.ts` | Passed |
 | **DASH-01** | API | AC-02, BR-22 | Requester dashboard metrics isolation | HTTP 200; counts scoped only to caller tickets | `server/tests/lab-04/requester-dashboard.api.test.ts` | Planned |
 | **DASH-02** | API | FR-12, BR-19, BR-20 | Requester metric calculation accuracy | Counts match independent database queries | `server/tests/lab-04/requester-dashboard.api.test.ts` | Planned |
 | **DASH-03** | API | AC-14, BR-23 | Requester dashboard for user with 0 tickets | HTTP 200; counts = 0; attentionTickets = []; recentTickets = [] | `server/tests/lab-04/requester-dashboard.api.test.ts` | Planned |
