@@ -99,6 +99,10 @@ model User {
   assignedTickets    Ticket[]       @relation("AssignedTickets")
   comments           Comment[]
   internalNotes      InternalNote[]
+  actionsPerformed   ActionTaken[]         @relation("ActionPerformedBy")
+  actionsAssigned    ActionTaken[]         @relation("ActionAssignee")
+  actionsCompleted   ActionTaken[]         @relation("ActionCompletedBy")
+  statusChanges      TicketStatusHistory[] @relation("StatusChangedBy")
 
   @@index([role])
   @@index([isActive])
@@ -127,6 +131,7 @@ model Ticket {
   itPriority                 Priority?
   currentStatus              TicketStatus @default(NEW)
   isProblemResolvedIndicated Boolean      @default(false)
+  version                    Int          @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -134,6 +139,8 @@ model Ticket {
   attachments   Attachment[]
   comments      Comment[]
   internalNotes InternalNote[]
+  actions       ActionTaken[]
+  statusHistory TicketStatusHistory[]
 
   @@index([requesterId, createdAt])
   @@index([assignedToId])
@@ -183,4 +190,66 @@ model InternalNote {
   createdAt DateTime @default(now())
 
   @@index([ticketId, createdAt])
+}
+
+// ----------------------------------------------------------------------------
+// SPRINT 4 (LAB 4) MODELS
+// ----------------------------------------------------------------------------
+
+enum ActionStatus {
+  PLANNED
+  COMPLETED
+  CANCELLED
+}
+
+model ActionTaken {
+  id              Int          @id @default(autoincrement())
+  ticketId        Int
+  ticket          Ticket       @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  actionAt        DateTime     @default(now())
+  description     String
+  result          String?
+  status          ActionStatus @default(PLANNED)
+  followUpRequired Boolean     @default(false)
+  followUpNote    String?
+  attachmentNotes String?
+
+  performedById   Int
+  performedBy     User         @relation("ActionPerformedBy", fields: [performedById], references: [id])
+
+  assigneeId      Int?
+  assignee        User?        @relation("ActionAssignee", fields: [assigneeId], references: [id])
+
+  completedById   Int?
+  completedBy     User?        @relation("ActionCompletedBy", fields: [completedById], references: [id])
+
+  version         Int          @default(0)
+  clientRequestId String?
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@unique([ticketId, clientRequestId])
+  @@index([ticketId, actionAt])
+  @@index([assigneeId, status])
+  @@index([status])
+}
+
+model TicketStatusHistory {
+  id          Int          @id @default(autoincrement())
+  ticketId    Int
+  ticket      Ticket       @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  fromStatus  TicketStatus
+  toStatus    TicketStatus
+
+  changedById Int
+  changedBy   User         @relation("StatusChangedBy", fields: [changedById], references: [id])
+
+  reason      String?
+  changedAt   DateTime     @default(now())
+
+  @@index([ticketId, changedAt])
+  @@index([toStatus, changedAt])
 }

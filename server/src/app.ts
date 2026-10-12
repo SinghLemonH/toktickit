@@ -11,6 +11,7 @@ import { authRouter } from "./routes/auth.js";
 import { commentsRouter } from "./routes/comments.js";
 import { staffTicketsRouter } from "./routes/staffTickets.js";
 import { adminUsersRouter } from "./routes/adminUsers.js";
+import actionsTakenRouter from "./routes/actionsTaken.js";
 import { upload, UPLOAD_DIR, MAX_ACTIVE_ATTACHMENTS } from "./upload.js";
 import { getNextTicketNumber } from "./lib/ticketNumber.js";
 
@@ -31,6 +32,7 @@ app.use("/api/auth", authRouter);
 app.use(commentsRouter);
 app.use(staffTicketsRouter);
 app.use("/api/admin/users", adminUsersRouter);
+app.use("/api", actionsTakenRouter);
 
 app.get("/api/health", (_req: Request, res: Response) => {
   res.status(200).json({ status: "ok", service: "TokTickIT API" });

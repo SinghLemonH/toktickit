@@ -74,9 +74,9 @@ describe("Public Comments & Dual-Channel Notes APIs (Issue #32)", () => {
     }
     requester1TicketId = ticket1!.id;
 
-    // Look up a resolved ticket
+    // Look up a resolved ticket owned by jennifer
     let resolvedTicket = await prisma.ticket.findFirst({
-      where: { currentStatus: "RESOLVED" },
+      where: { currentStatus: "RESOLVED", requesterId: jennifer.id },
     });
     if (!resolvedTicket) {
       resolvedTicket = await prisma.ticket.create({

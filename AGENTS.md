@@ -1,4 +1,4 @@
-﻿# AGENTS.md: TokTickIT
+# AGENTS.md: TokTickIT
 
 > **TL;DR: READ THIS FIRST BEFORE WRITING CODE OR SWITCHING CONVERSATIONS.**
 > You are working on **Lab 4: Actions Taken, Dashboards, and Final Regression**.
@@ -14,8 +14,8 @@ When an AI agent starts or resumes work in a new conversation, **immediately rea
 
 | Issue | Title | Branch | Status | Key Deliverables |
 | :--- | :--- | :--- | :--- | :--- |
-| **#46** | **Sprint 4 Engineering Contract, Continuity Guide & Baseline Config** | `feature/46-sprint4-contract-and-agent-guide` | **In Progress** | `docs/lab-04/` (spec, api, ui, tests, reviewer, ai-use), `AGENTS.md`, vitest parallelism fix |
-| **#47** | **Actions Taken Database Foundation, Migration, Rollback & Seed** | `feature/47-actions-taken-backend-foundation` | **Todo** | Prisma `ActionTaken`, `TicketStatusHistory`, `version`, rollback SQL, idempotent seed, REST APIs |
+| **#46** | **Sprint 4 Engineering Contract, Continuity Guide & Baseline Config** | `feature/46-sprint4-contract-and-agent-guide` | **Done** | Merged into `lab4-staging` via PR #53. |
+| **#47** | **Actions Taken Database Foundation, Migration, Rollback & Seed** | `feature/47-actions-taken-backend-foundation` | **In Progress** | Prisma `ActionTaken`, `TicketStatusHistory`, `version`, rollback SQL, idempotent seed, REST APIs |
 | **#48** | **Ticket Workflow, Resolution Gate, Stale-Update Guard & History** | `feature/48-ticket-workflow` | **Todo** | Resolution gate, transition matrix, Requester reopen, optimistic locking (409), status audit trail |
 | **#49** | **Role-Based Dashboards Backend API & Metric Verification** | `feature/49-dashboard-api` | **Todo** | Requester & Staff dashboard APIs, drill-down parity query filters, verify metrics script |
 | **#50** | **Actions Taken UI on Ticket Detail** | `feature/50-actions-taken-ui` | **Todo** | `ActionsTakenSection` component, inline create, view/edit, read-only mode, status alerts |
