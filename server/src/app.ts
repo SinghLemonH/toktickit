@@ -12,6 +12,7 @@ import { commentsRouter } from "./routes/comments.js";
 import { staffTicketsRouter } from "./routes/staffTickets.js";
 import { adminUsersRouter } from "./routes/adminUsers.js";
 import actionsTakenRouter from "./routes/actionsTaken.js";
+import { dashboardRouter } from "./routes/dashboard.js";
 import { upload, UPLOAD_DIR, MAX_ACTIVE_ATTACHMENTS } from "./upload.js";
 import { getNextTicketNumber } from "./lib/ticketNumber.js";
 import { getAllowedTransitions } from "./domain/workflow.js";
@@ -35,6 +36,7 @@ app.use(commentsRouter);
 app.use(staffTicketsRouter);
 app.use("/api/admin/users", adminUsersRouter);
 app.use("/api", actionsTakenRouter);
+app.use(dashboardRouter);
 
 app.get("/api/health", (_req: Request, res: Response) => {
   res.status(200).json({ status: "ok", service: "TokTickIT API" });
@@ -225,8 +227,13 @@ app.get("/api/tickets", requireActiveRequester, async (req: RequestWithRequester
     const requestedPriority =
       typeof req.query.requestedPriority === "string" ? req.query.requestedPriority : undefined;
     const itPriority = typeof req.query.itPriority === "string" ? req.query.itPriority : undefined;
-    const currentStatus =
-      typeof req.query.currentStatus === "string" ? req.query.currentStatus : undefined;
+    const rawStatus =
+      typeof req.query.currentStatus === "string"
+        ? req.query.currentStatus
+        : typeof req.query.status === "string"
+        ? req.query.status
+        : undefined;
+    const statusGroup = typeof req.query.statusGroup === "string" ? req.query.statusGroup : undefined;
 
     const sortByRaw = typeof req.query.sortBy === "string" ? req.query.sortBy : "createdAt";
     const sortBy = SORTABLE_FIELDS.has(sortByRaw) ? sortByRaw : "createdAt"; // BR-14 fallback
@@ -237,8 +244,37 @@ app.get("/api/tickets", requireActiveRequester, async (req: RequestWithRequester
     const pageSizeRaw = Number(req.query.pageSize);
     const pageSize = PAGE_SIZES.has(pageSizeRaw) ? pageSizeRaw : 10; // BR-15 fallback
 
+    const ACTIVE_STATUSES = [
+      "NEW",
+      "OPEN",
+      "IN_PROGRESS",
+      "WAITING_FOR_REQUESTER",
+      "REOPENED",
+      "PENDING",
+    ];
+
+    let statusCondition: Record<string, unknown> | undefined;
+    if (rawStatus && statusGroup === "active") {
+      if (ACTIVE_STATUSES.includes(rawStatus)) {
+        statusCondition = { currentStatus: rawStatus };
+      } else {
+        statusCondition = { currentStatus: { in: [] } };
+      }
+    } else if (rawStatus) {
+      statusCondition = { currentStatus: rawStatus };
+    } else if (statusGroup === "active") {
+      statusCondition = { currentStatus: { in: ACTIVE_STATUSES } };
+    }
+
+    let itPriorityCondition: Record<string, unknown> | undefined;
+    if (itPriority === "none") {
+      itPriorityCondition = { itPriority: null };
+    } else if (itPriority && ["LOW", "MEDIUM", "HIGH"].includes(itPriority)) {
+      itPriorityCondition = { itPriority };
+    }
+
     const where: Record<string, unknown> = {
-      requesterId: req.requester!.id, // BR-09/BR-10 — ownership scope
+      requesterId: req.requester!.id, // BR-09/BR-10 - ownership scope
       ...(search
         ? {
             OR: [
@@ -249,8 +285,8 @@ app.get("/api/tickets", requireActiveRequester, async (req: RequestWithRequester
         : {}),
       ...(categoryId ? { categoryId } : {}),
       ...(requestedPriority ? { requestedPriority } : {}),
-      ...(itPriority ? { itPriority } : {}),
-      ...(currentStatus ? { currentStatus } : {}),
+      ...(itPriorityCondition ? itPriorityCondition : {}),
+      ...(statusCondition ? statusCondition : {}),
     };
 
     const [totalItems, items] = await Promise.all([
