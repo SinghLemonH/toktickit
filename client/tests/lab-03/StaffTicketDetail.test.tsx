@@ -89,6 +89,8 @@ describe("StaffTicketDetail Component (UI-04, AC-12)", () => {
     vi.spyOn(api, "getStaffUsers").mockResolvedValue(mockStaffMembers);
     vi.spyOn(api, "getPublicComments").mockResolvedValue(mockComments);
     vi.spyOn(api, "getInternalNotes").mockResolvedValue(mockInternalNotes);
+    vi.spyOn(api, "getActionsTaken").mockResolvedValue([]);
+    vi.spyOn(api, "getTicketStatusHistory").mockResolvedValue([]);
   });
 
   it("renders ticket operational controls and problem resolved alert banner", async () => {
