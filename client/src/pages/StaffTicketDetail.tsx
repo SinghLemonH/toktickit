@@ -21,12 +21,16 @@ import {
   postPublicComment,
   getInternalNotes,
   addInternalNote,
+  getTicketStatusHistory,
+  ApiError,
   type TicketDetail as TicketDetailType,
   type StaffUser,
   type PublicComment,
   type InternalNote,
+  type TicketStatusHistoryItem,
 } from "../api.js";
 import { useAuth } from "../context/AuthContext.js";
+import ActionsTakenSection from "../components/ActionsTakenSection.js";
 
 // Permitted status transitions based on BR-15
 const ALLOWED_STATUS_TRANSITIONS: Record<string, string[]> = {
@@ -104,6 +108,12 @@ export default function StaffTicketDetail() {
   const [submittingComment, setSubmittingComment] = useState(false);
   const [submittingNote, setSubmittingNote] = useState(false);
 
+  // Status history state
+  const [historyItems, setHistoryItems] = useState<TicketStatusHistoryItem[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [staleConflict, setStaleConflict] = useState(false);
+  const [gateReasons, setGateReasons] = useState<string[]>([]);
+
   const loadTicketData = useCallback(async () => {
     if (Number.isNaN(ticketId)) {
       setError("Invalid ticket ID.");
@@ -114,6 +124,7 @@ export default function StaffTicketDetail() {
     try {
       setLoading(true);
       setError(null);
+      setStaleConflict(false);
 
       // Load ticket details and reference staff
       const [ticketData, staffList] = await Promise.all([
@@ -127,14 +138,18 @@ export default function StaffTicketDetail() {
       setSelectedPriority(ticketData.itPriority || ticketData.requestedPriority || "MEDIUM");
       setSelectedStatus(ticketData.currentStatus);
 
-      // Load both comment streams
-      const [publicComms, notes] = await Promise.all([
+      // Load comments, notes, and status audit history
+      setHistoryLoading(true);
+      const [publicComms, notes, history] = await Promise.all([
         getPublicComments(ticketId).catch(() => []),
         getInternalNotes(ticketId).catch(() => []),
+        getTicketStatusHistory(ticketId).catch(() => []),
       ]);
 
       setComments(publicComms);
       setInternalNotes(notes);
+      setHistoryItems(history);
+      setHistoryLoading(false);
     } catch (err: any) {
       setError(err.message || "Failed to load ticket details.");
     } finally {
@@ -150,6 +165,7 @@ export default function StaffTicketDetail() {
   async function handleClaimTicket() {
     if (!ticket || !user) return;
     try {
+      setStaleConflict(false);
       if (ticket.version !== undefined) {
         await assignStaffTicket(ticket.id, user.id, ticket.version);
       } else {
@@ -158,7 +174,11 @@ export default function StaffTicketDetail() {
       await loadTicketData();
       showSuccess("You have claimed this ticket.");
     } catch (err: any) {
-      setError(err.message || "Failed to claim ticket.");
+      if (err instanceof ApiError && err.code === "STALE_UPDATE") {
+        setStaleConflict(true);
+      } else {
+        setError(err.message || "Failed to claim ticket.");
+      }
     }
   }
 
@@ -167,6 +187,7 @@ export default function StaffTicketDetail() {
     if (!ticket) return;
     const targetId = selectedAssignee ? Number(selectedAssignee) : null;
     try {
+      setStaleConflict(false);
       if (ticket.version !== undefined) {
         await assignStaffTicket(ticket.id, targetId, ticket.version);
       } else {
@@ -175,7 +196,11 @@ export default function StaffTicketDetail() {
       await loadTicketData();
       showSuccess(targetId ? "Ticket reassigned successfully." : "Ticket unassigned.");
     } catch (err: any) {
-      setError(err.message || "Failed to reassign ticket.");
+      if (err instanceof ApiError && err.code === "STALE_UPDATE") {
+        setStaleConflict(true);
+      } else {
+        setError(err.message || "Failed to reassign ticket.");
+      }
     }
   }
 
@@ -183,6 +208,7 @@ export default function StaffTicketDetail() {
   async function handlePriorityChange() {
     if (!ticket) return;
     try {
+      setStaleConflict(false);
       await updateTicketItPriority(ticket.id, selectedPriority);
       await loadTicketData();
       showSuccess(`IT Priority updated to ${selectedPriority}.`);
@@ -191,10 +217,22 @@ export default function StaffTicketDetail() {
     }
   }
 
+  // Operations: Initiate Status Change Check
+  function handleInitiateStatusChange() {
+    if (!ticket || !selectedStatus) return;
+    setGateReasons([]);
+    // If transitioning to RESOLVED, check resolution gate feedback
+    if (selectedStatus === "RESOLVED" && ticket.resolutionGate && !ticket.resolutionGate.ok) {
+      setGateReasons(ticket.resolutionGate.reasons);
+    }
+    setIsStatusModalOpen(true);
+  }
+
   // Operations: Confirm Status Change
   async function handleConfirmStatusChange() {
     if (!ticket || !selectedStatus) return;
     try {
+      setStaleConflict(false);
       if (ticket.version !== undefined) {
         await updateTicketStatus(ticket.id, selectedStatus, ticket.version);
       } else {
@@ -202,9 +240,22 @@ export default function StaffTicketDetail() {
       }
       await loadTicketData();
       setIsStatusModalOpen(false);
+      setGateReasons([]);
       showSuccess(`Ticket status updated to ${selectedStatus.replace(/_/g, " ")}.`);
     } catch (err: any) {
+      if (err instanceof ApiError) {
+        if (err.code === "STALE_UPDATE") {
+          setStaleConflict(true);
+          setIsStatusModalOpen(false);
+          return;
+        }
+        if (err.code === "RESOLUTION_GATE_NOT_MET" && err.reasons) {
+          setGateReasons(err.reasons);
+          return;
+        }
+      }
       setError(err.message || "Failed to change ticket status.");
+      setIsStatusModalOpen(false);
     }
   }
 
@@ -247,7 +298,8 @@ export default function StaffTicketDetail() {
     setTimeout(() => setActionSuccessMessage(null), 4000);
   }
 
-  const validNextStatuses = ticket ? ALLOWED_STATUS_TRANSITIONS[ticket.currentStatus] || [] : [];
+  const validNextStatuses = ticket?.allowedTransitions || (ticket ? ALLOWED_STATUS_TRANSITIONS[ticket.currentStatus] || [] : []);
+  const isTicketLocked = ticket ? ["RESOLVED", "CLOSED", "CANCELLED"].includes(ticket.currentStatus) : false;
 
   if (loading) {
     return (
@@ -306,6 +358,18 @@ export default function StaffTicketDetail() {
       {error && (
         <div className="alert alert-danger py-2" role="alert">
           {error}
+        </div>
+      )}
+
+      {/* Stale Update / Concurrency Conflict Alert Banner */}
+      {staleConflict && (
+        <div className="alert alert-warning py-2 d-flex justify-content-between align-items-center" role="alert">
+          <div>
+            <strong>Record changed by another user.</strong> This ticket was updated concurrently. Please reload to see the latest changes.
+          </div>
+          <button className="btn btn-outline-dark btn-sm ms-3" onClick={loadTicketData}>
+            Reload Ticket
+          </button>
         </div>
       )}
 
@@ -403,6 +467,16 @@ export default function StaffTicketDetail() {
               </ul>
             </div>
           )}
+
+          {/* Actions Taken on Ticket (Lab 4) */}
+          <div className="mb-3">
+            <ActionsTakenSection
+              ticketId={ticket.id}
+              isStaff={true}
+              ticketStatus={ticket.currentStatus}
+              onActionSaved={loadTicketData}
+            />
+          </div>
 
           {/* Dual-Channel Tabs: Public Comments vs Internal Notes */}
           <div className="card shadow-sm border-0">
@@ -601,6 +675,7 @@ export default function StaffTicketDetail() {
                       type="button"
                       className="btn btn-sm btn-outline-success d-flex align-items-center gap-1"
                       onClick={handleClaimTicket}
+                      disabled={isTicketLocked}
                     >
                       <UserCheck size={14} /> Claim Ticket
                     </button>
@@ -613,6 +688,7 @@ export default function StaffTicketDetail() {
                     className="form-select"
                     value={selectedAssignee}
                     onChange={(e) => setSelectedAssignee(e.target.value)}
+                    disabled={isTicketLocked}
                   >
                     <option value="">Unassigned</option>
                     {staffUsers.map((s) => (
@@ -621,10 +697,15 @@ export default function StaffTicketDetail() {
                       </option>
                     ))}
                   </select>
-                  <button className="btn btn-secondary" onClick={handleReassign}>
+                  <button className="btn btn-secondary" onClick={handleReassign} disabled={isTicketLocked}>
                     Reassign
                   </button>
                 </div>
+                {isTicketLocked && (
+                  <div className="small text-muted mt-1">
+                    Cannot reassign a resolved, closed, or cancelled ticket.
+                  </div>
+                )}
               </div>
 
               {/* 2. IT Priority */}
@@ -636,12 +717,13 @@ export default function StaffTicketDetail() {
                     className="form-select"
                     value={selectedPriority}
                     onChange={(e) => setSelectedPriority(e.target.value)}
+                    disabled={isTicketLocked}
                   >
                     <option value="LOW">Low</option>
                     <option value="MEDIUM">Medium</option>
                     <option value="HIGH">High</option>
                   </select>
-                  <button className="btn btn-secondary" onClick={handlePriorityChange}>
+                  <button className="btn btn-secondary" onClick={handlePriorityChange} disabled={isTicketLocked}>
                     Update
                   </button>
                 </div>
@@ -675,12 +757,60 @@ export default function StaffTicketDetail() {
                   <button
                     className="btn btn-success"
                     disabled={selectedStatus === ticket.currentStatus}
-                    onClick={() => setIsStatusModalOpen(true)}
+                    onClick={handleInitiateStatusChange}
                   >
                     Change Status
                   </button>
                 </div>
+
+                {/* Inline Resolution Gate Alert on Ticket Detail if gate not satisfied */}
+                {ticket.resolutionGate && !ticket.resolutionGate.ok && (
+                  <div className="alert alert-warning py-2 mt-2 small" role="alert">
+                    <div className="fw-semibold mb-1">Resolution Gate:</div>
+                    <ul className="mb-0 ps-3">
+                      {ticket.resolutionGate.reasons.map((r, i) => (
+                        <li key={i}>{r}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
+            </div>
+          </div>
+
+          {/* 4. Status History Audit Trail Card */}
+          <div className="card shadow-sm border-0 mb-3">
+            <div className="card-header bg-white py-3 fw-bold border-bottom">
+              Status History
+            </div>
+            <div className="card-body p-0">
+              {historyLoading ? (
+                <div className="p-3 text-center text-muted small">Loading history...</div>
+              ) : historyItems.length === 0 ? (
+                <div className="p-3 text-center text-muted small">No status changes recorded.</div>
+              ) : (
+                <ul className="list-group list-group-flush small">
+                  {historyItems.map((h) => (
+                    <li key={h.id} className="list-group-item py-2 px-3">
+                      <div className="d-flex justify-content-between align-items-center mb-1">
+                        <div>
+                          <span className="badge bg-secondary me-1">{h.fromStatus ? h.fromStatus.replace(/_/g, " ") : "ORIGIN"}</span>
+                          <span className="text-muted">to</span>{" "}
+                          <span className="badge bg-success ms-1">{h.toStatus.replace(/_/g, " ")}</span>
+                        </div>
+                        <span className="text-muted" style={{ fontSize: "0.75rem" }}>
+                          {new Date(h.changedAt).toLocaleDateString([], { month: "short", day: "numeric" })}{" "}
+                          {new Date(h.changedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      </div>
+                      <div className="text-muted">
+                        by {h.changedBy ? h.changedBy.name : "System"}
+                        {h.reason && <span className="ms-1 text-dark">- Reason: {h.reason}</span>}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </div>
         </div>
@@ -707,9 +837,19 @@ export default function StaffTicketDetail() {
                 />
               </div>
               <div className="modal-body py-4">
-                <p className="mb-0">
+                <p className="mb-2">
                   Are you sure you want to change ticket status to {selectedStatus}?
                 </p>
+                {gateReasons.length > 0 && (
+                  <div className="alert alert-danger py-2 mt-3 small mb-0" role="alert">
+                    <div className="fw-semibold mb-1">Cannot resolve ticket: Resolution Gate not satisfied</div>
+                    <ul className="mb-0 ps-3">
+                      {gateReasons.map((r, i) => (
+                        <li key={i}>{r}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
               <div className="modal-footer border-top">
                 <button

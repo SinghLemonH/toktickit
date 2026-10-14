@@ -137,6 +137,30 @@ export class CreateTicketValidationError extends Error {
   }
 }
 
+export class ApiError extends Error {
+  code?: string;
+  status?: number;
+  fields?: Record<string, string>;
+  reasons?: string[];
+
+  constructor(
+    message: string,
+    options?: {
+      code?: string;
+      status?: number;
+      fields?: Record<string, string>;
+      reasons?: string[];
+    }
+  ) {
+    super(message);
+    this.name = "ApiError";
+    this.code = options?.code;
+    this.status = options?.status;
+    this.fields = options?.fields;
+    this.reasons = options?.reasons;
+  }
+}
+
 export async function createTicket(
   requesterId: number,
   input: CreateTicketInput
@@ -451,7 +475,11 @@ export async function assignStaffTicket(
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
-    throw new Error(data.error?.message || "Failed to assign ticket");
+    throw new ApiError(data.error?.message || "Failed to assign ticket", {
+      code: data.error?.code,
+      status: res.status,
+      fields: data.error?.fields,
+    });
   }
   return res.json();
 }
@@ -468,7 +496,10 @@ export async function updateTicketItPriority(
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
-    throw new Error(data.error?.message || "Failed to update IT Priority");
+    throw new ApiError(data.error?.message || "Failed to update IT Priority", {
+      code: data.error?.code,
+      status: res.status,
+    });
   }
   return res.json();
 }
@@ -490,7 +521,12 @@ export async function updateTicketStatus(
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
-    throw new Error(data.error?.message || "Failed to update ticket status");
+    throw new ApiError(data.error?.message || "Failed to update ticket status", {
+      code: data.error?.code,
+      status: res.status,
+      fields: data.error?.fields,
+      reasons: data.error?.reasons,
+    });
   }
   return res.json();
 }
@@ -612,6 +648,157 @@ export async function resetUserPassword(
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
     throw new Error(data.error?.message || data.error || "Failed to reset password");
+  }
+  return res.json();
+}
+
+// Lab 4: Actions Taken and Ticket Workflow
+export interface ActionTaken {
+  id: number;
+  ticketId: number;
+  actionAt: string;
+  description: string;
+  result: string | null;
+  status: "PLANNED" | "COMPLETED" | "CANCELLED";
+  followUpRequired: boolean;
+  followUpNote: string | null;
+  attachmentNotes: string | null;
+  assigneeId: number | null;
+  assignee?: { id: number; name: string; email?: string; role?: string } | null;
+  performedById: number;
+  performedBy: { id: number; name: string; email?: string; role?: string };
+  completedById: number | null;
+  completedBy?: { id: number; name: string; email?: string; role?: string } | null;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateActionTakenPayload {
+  actionAt?: string;
+  description: string;
+  result?: string;
+  status?: "PLANNED" | "COMPLETED";
+  followUpRequired?: boolean;
+  followUpNote?: string;
+  attachmentNotes?: string;
+  assigneeId?: number | null;
+  clientRequestId?: string;
+}
+
+export interface UpdateActionTakenPayload {
+  expectedVersion: number;
+  actionAt?: string;
+  description?: string;
+  result?: string;
+  status?: "PLANNED" | "COMPLETED" | "CANCELLED";
+  followUpRequired?: boolean;
+  followUpNote?: string;
+  attachmentNotes?: string;
+  assigneeId?: number | null;
+}
+
+export interface TicketStatusHistoryItem {
+  id: number;
+  fromStatus: string | null;
+  toStatus: string;
+  reason: string | null;
+  changedAt: string;
+  changedBy: {
+    id: number;
+    name: string;
+  };
+}
+
+export async function getActionsTaken(ticketId: number): Promise<ActionTaken[]> {
+  const res = await fetch(`${API_URL}/api/tickets/${ticketId}/actions`, {
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new ApiError(data.error?.message || "Failed to load actions taken", {
+      code: data.error?.code,
+      status: res.status,
+    });
+  }
+  return res.json();
+}
+
+export async function createActionTaken(
+  ticketId: number,
+  payload: CreateActionTakenPayload
+): Promise<ActionTaken> {
+  const res = await fetch(`${API_URL}/api/staff/tickets/${ticketId}/actions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new ApiError(data.error?.message || "Failed to create action taken", {
+      code: data.error?.code,
+      status: res.status,
+      fields: data.error?.fields,
+    });
+  }
+  return res.json();
+}
+
+export async function updateActionTaken(
+  ticketId: number,
+  actionId: number,
+  payload: UpdateActionTakenPayload
+): Promise<ActionTaken> {
+  const res = await fetch(`${API_URL}/api/staff/tickets/${ticketId}/actions/${actionId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new ApiError(data.error?.message || "Failed to update action taken", {
+      code: data.error?.code,
+      status: res.status,
+      fields: data.error?.fields,
+    });
+  }
+  return res.json();
+}
+
+export async function getTicketStatusHistory(
+  ticketId: number
+): Promise<TicketStatusHistoryItem[]> {
+  const res = await fetch(`${API_URL}/api/tickets/${ticketId}/history`, {
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new ApiError(data.error?.message || "Failed to load ticket status history", {
+      code: data.error?.code,
+      status: res.status,
+    });
+  }
+  return res.json();
+}
+
+export async function reopenTicket(
+  ticketId: number,
+  payload?: { reason?: string; expectedVersion?: number }
+): Promise<TicketDetail> {
+  const res = await fetch(`${API_URL}/api/tickets/${ticketId}/reopen`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(payload || {}),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new ApiError(data.error?.message || "Failed to reopen ticket", {
+      code: data.error?.code,
+      status: res.status,
+    });
   }
   return res.json();
 }
