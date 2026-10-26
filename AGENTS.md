@@ -17,8 +17,8 @@ When an AI agent starts or resumes work in a new conversation, **immediately rea
 | **#46** | **Sprint 4 Engineering Contract, Continuity Guide & Baseline Config** | `feature/46-sprint4-contract-and-agent-guide` | **Done** | Merged into `lab4-staging` via PR #53. |
 | **#47** | **Actions Taken Database Foundation, Migration, Rollback & Seed** | `feature/47-actions-taken-backend-foundation` | **Done** | Merged into `lab4-staging` via PR #54. |
 | **#48** | **Ticket Workflow, Resolution Gate, Stale-Update Guard & History** | `feature/48-ticket-workflow` | **Done** | Merged into `lab4-staging` via PR #55. |
-| **#49** | **Role-Based Dashboards Backend API & Metric Verification** | `feature/49-dashboard-api` | **In Progress** | Requester & Staff dashboard APIs, drill-down parity query filters, verify metrics script |
-| **#50** | **Actions Taken UI on Ticket Detail** | `feature/50-actions-taken-ui` | **Todo** | `ActionsTakenSection` component, inline create, view/edit, read-only mode, status alerts |
+| **#49** | **Role-Based Dashboards Backend API & Metric Verification** | `feature/49-dashboard-api` | **Done** | Merged into `lab4-staging` via PR #56. |
+| **#50** | **Actions Taken UI on Ticket Detail** | `feature/50-actions-taken-ui` | **In Progress** | `ActionsTakenSection` component, inline create, view/edit, read-only mode, status alerts |
 | **#51** | **Dashboards UI, Navigation & Lab 2 Remnants Cleanup** | `feature/51-dashboards-ui-and-nav` | **Todo** | Role-based Dashboard page, Zen Green metric cards, role-aware navigation, clean Lab 2 remnants |
 | **#52** | **Final Hardening, Multi-Viewport E2E & Visual Artifacts** | `feature/52-final-hardening` | **Todo** | Playwright E2E suites, multi-viewport screenshots (1280, 768, 375), accessibility & visual checklist |
 

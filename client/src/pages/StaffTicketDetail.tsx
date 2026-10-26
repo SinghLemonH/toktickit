@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   ArrowLeft,
@@ -21,24 +21,18 @@ import {
   postPublicComment,
   getInternalNotes,
   addInternalNote,
+  getTicketStatusHistory,
+  ApiError,
   type TicketDetail as TicketDetailType,
   type StaffUser,
   type PublicComment,
   type InternalNote,
+  type TicketStatusHistoryItem,
 } from "../api.js";
 import { useAuth } from "../context/AuthContext.js";
-
-// Permitted status transitions based on BR-15
-const ALLOWED_STATUS_TRANSITIONS: Record<string, string[]> = {
-  NEW: ["OPEN", "CANCELLED"],
-  OPEN: ["IN_PROGRESS", "WAITING_FOR_REQUESTER", "RESOLVED", "CANCELLED"],
-  IN_PROGRESS: ["WAITING_FOR_REQUESTER", "RESOLVED", "CANCELLED"],
-  WAITING_FOR_REQUESTER: ["IN_PROGRESS", "RESOLVED", "CANCELLED"],
-  RESOLVED: ["CLOSED", "REOPENED"],
-  CLOSED: ["REOPENED"],
-  REOPENED: ["IN_PROGRESS", "RESOLVED", "CANCELLED"],
-  CANCELLED: [],
-};
+import ActionsTakenSection from "../components/ActionsTakenSection.js";
+import Modal from "../components/Modal.js";
+import { formatBangkokDateTime } from "../utils/dateUtils.js";
 
 function getPriorityBadgeClass(p: string | null) {
   if (p === "HIGH") return "bg-danger text-white";
@@ -52,7 +46,7 @@ function getStatusBadgeClass(s: string) {
     case "NEW":
       return "bg-primary text-white";
     case "OPEN":
-      return "bg-info text-dark";
+      return "bg-info text-white";
     case "IN_PROGRESS":
       return "bg-warning text-dark";
     case "WAITING_FOR_REQUESTER":
@@ -88,6 +82,7 @@ export default function StaffTicketDetail() {
   const [internalNotes, setInternalNotes] = useState<InternalNote[]>([]);
 
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Operational controls state
@@ -96,6 +91,7 @@ export default function StaffTicketDetail() {
   const [selectedStatus, setSelectedStatus] = useState<string>("");
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [actionSuccessMessage, setActionSuccessMessage] = useState<string | null>(null);
+  const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Dual-Channel Tabs: "public" | "internal"
   const [activeTab, setActiveTab] = useState<"public" | "internal">("public");
@@ -104,7 +100,13 @@ export default function StaffTicketDetail() {
   const [submittingComment, setSubmittingComment] = useState(false);
   const [submittingNote, setSubmittingNote] = useState(false);
 
-  const loadTicketData = useCallback(async () => {
+  // Status history state
+  const [historyItems, setHistoryItems] = useState<TicketStatusHistoryItem[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [staleConflict, setStaleConflict] = useState(false);
+  const [gateReasons, setGateReasons] = useState<string[]>([]);
+
+  const loadTicketData = useCallback(async (isInitial = false) => {
     if (Number.isNaN(ticketId)) {
       setError("Invalid ticket ID.");
       setLoading(false);
@@ -112,12 +114,17 @@ export default function StaffTicketDetail() {
     }
 
     try {
-      setLoading(true);
+      if (isInitial) {
+        setLoading(true);
+      } else {
+        setRefreshing(true);
+      }
       setError(null);
+      setStaleConflict(false);
 
       // Load ticket details and reference staff
       const [ticketData, staffList] = await Promise.all([
-        getTicketDetail(0, ticketId),
+        getTicketDetail(undefined, ticketId),
         getStaffUsers().catch(() => []),
       ]);
 
@@ -127,55 +134,78 @@ export default function StaffTicketDetail() {
       setSelectedPriority(ticketData.itPriority || ticketData.requestedPriority || "MEDIUM");
       setSelectedStatus(ticketData.currentStatus);
 
-      // Load both comment streams
-      const [publicComms, notes] = await Promise.all([
+      // Load comments, notes, and status audit history
+      setHistoryLoading(true);
+      const [publicComms, notes, history] = await Promise.all([
         getPublicComments(ticketId).catch(() => []),
         getInternalNotes(ticketId).catch(() => []),
+        getTicketStatusHistory(ticketId).catch(() => []),
       ]);
 
       setComments(publicComms);
       setInternalNotes(notes);
+      setHistoryItems(history);
+      setHistoryLoading(false);
     } catch (err: any) {
       setError(err.message || "Failed to load ticket details.");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, [ticketId]);
 
   useEffect(() => {
-    loadTicketData();
+    loadTicketData(true);
   }, [loadTicketData]);
+
+  useEffect(() => {
+    return () => {
+      if (successTimerRef.current) {
+        clearTimeout(successTimerRef.current);
+      }
+    };
+  }, []);
 
   // Operations: Quick Claim Ticket
   async function handleClaimTicket() {
     if (!ticket || !user) return;
+    if (ticket.version === undefined) {
+      setError("Ticket version is missing. Please reload ticket.");
+      return;
+    }
     try {
-      if (ticket.version !== undefined) {
-        await assignStaffTicket(ticket.id, user.id, ticket.version);
-      } else {
-        await assignStaffTicket(ticket.id, user.id);
-      }
-      await loadTicketData();
+      setStaleConflict(false);
+      await assignStaffTicket(ticket.id, user.id, ticket.version);
+      await loadTicketData(false);
       showSuccess("You have claimed this ticket.");
     } catch (err: any) {
-      setError(err.message || "Failed to claim ticket.");
+      if (err instanceof ApiError && err.code === "STALE_UPDATE") {
+        setStaleConflict(true);
+      } else {
+        setError(err.message || "Failed to claim ticket.");
+      }
     }
   }
 
   // Operations: Reassign Ticket
   async function handleReassign() {
     if (!ticket) return;
+    if (ticket.version === undefined) {
+      setError("Ticket version is missing. Please reload ticket.");
+      return;
+    }
     const targetId = selectedAssignee ? Number(selectedAssignee) : null;
     try {
-      if (ticket.version !== undefined) {
-        await assignStaffTicket(ticket.id, targetId, ticket.version);
-      } else {
-        await assignStaffTicket(ticket.id, targetId);
-      }
-      await loadTicketData();
+      setStaleConflict(false);
+      await assignStaffTicket(ticket.id, targetId, ticket.version);
+      await loadTicketData(false);
       showSuccess(targetId ? "Ticket reassigned successfully." : "Ticket unassigned.");
     } catch (err: any) {
-      setError(err.message || "Failed to reassign ticket.");
+      if (err instanceof ApiError && err.code === "STALE_UPDATE") {
+        setStaleConflict(true);
+      } else {
+        setError(err.message || "Failed to reassign ticket.");
+      }
     }
   }
 
@@ -183,28 +213,54 @@ export default function StaffTicketDetail() {
   async function handlePriorityChange() {
     if (!ticket) return;
     try {
+      setStaleConflict(false);
       await updateTicketItPriority(ticket.id, selectedPriority);
-      await loadTicketData();
+      await loadTicketData(false);
       showSuccess(`IT Priority updated to ${selectedPriority}.`);
     } catch (err: any) {
       setError(err.message || "Failed to update IT Priority.");
     }
   }
 
+  // Operations: Initiate Status Change Check
+  function handleInitiateStatusChange() {
+    if (!ticket || !selectedStatus) return;
+    setGateReasons([]);
+    // If transitioning to RESOLVED, check resolution gate feedback
+    if (selectedStatus === "RESOLVED" && ticket.resolutionGate && !ticket.resolutionGate.ok) {
+      setGateReasons(ticket.resolutionGate.reasons);
+    }
+    setIsStatusModalOpen(true);
+  }
+
   // Operations: Confirm Status Change
   async function handleConfirmStatusChange() {
     if (!ticket || !selectedStatus) return;
+    if (ticket.version === undefined) {
+      setError("Ticket version is missing. Please reload ticket.");
+      return;
+    }
     try {
-      if (ticket.version !== undefined) {
-        await updateTicketStatus(ticket.id, selectedStatus, ticket.version);
-      } else {
-        await updateTicketStatus(ticket.id, selectedStatus);
-      }
-      await loadTicketData();
+      setStaleConflict(false);
+      await updateTicketStatus(ticket.id, selectedStatus, ticket.version);
+      await loadTicketData(false);
       setIsStatusModalOpen(false);
+      setGateReasons([]);
       showSuccess(`Ticket status updated to ${selectedStatus.replace(/_/g, " ")}.`);
     } catch (err: any) {
+      if (err instanceof ApiError) {
+        if (err.code === "STALE_UPDATE") {
+          setStaleConflict(true);
+          setIsStatusModalOpen(false);
+          return;
+        }
+        if (err.code === "RESOLUTION_GATE_NOT_MET" && err.reasons) {
+          setGateReasons(err.reasons);
+          return;
+        }
+      }
       setError(err.message || "Failed to change ticket status.");
+      setIsStatusModalOpen(false);
     }
   }
 
@@ -243,11 +299,18 @@ export default function StaffTicketDetail() {
   }
 
   function showSuccess(msg: string) {
+    if (successTimerRef.current) {
+      clearTimeout(successTimerRef.current);
+    }
     setActionSuccessMessage(msg);
-    setTimeout(() => setActionSuccessMessage(null), 4000);
+    successTimerRef.current = setTimeout(() => {
+      setActionSuccessMessage(null);
+      successTimerRef.current = null;
+    }, 4000);
   }
 
-  const validNextStatuses = ticket ? ALLOWED_STATUS_TRANSITIONS[ticket.currentStatus] || [] : [];
+  const validNextStatuses = ticket?.allowedTransitions || [];
+  const isTicketLocked = ticket ? ["RESOLVED", "CLOSED", "CANCELLED"].includes(ticket.currentStatus) : false;
 
   if (loading) {
     return (
@@ -309,6 +372,18 @@ export default function StaffTicketDetail() {
         </div>
       )}
 
+      {/* Stale Update / Concurrency Conflict Alert Banner */}
+      {staleConflict && (
+        <div className="alert alert-warning py-2 d-flex justify-content-between align-items-center" role="alert">
+          <div>
+            <strong>Record changed by another user.</strong> This ticket was updated concurrently. Please reload to see the latest changes.
+          </div>
+          <button className="btn btn-outline-dark btn-sm ms-3" onClick={() => loadTicketData(true)}>
+            Reload Ticket
+          </button>
+        </div>
+      )}
+
       {/* Problem Appears Resolved Alert Banner */}
       {ticket.isProblemResolvedIndicated && (
         <div
@@ -363,7 +438,7 @@ export default function StaffTicketDetail() {
                 </div>
                 <div className="col-6 col-md-3">
                   <strong>Created At:</strong>
-                  <div>{new Date(ticket.createdAt).toLocaleDateString()}</div>
+                  <div>{formatBangkokDateTime(ticket.createdAt)}</div>
                 </div>
               </div>
             </div>
@@ -404,14 +479,26 @@ export default function StaffTicketDetail() {
             </div>
           )}
 
+          {/* Actions Taken on Ticket (Lab 4) */}
+          <div className="mb-3">
+            <ActionsTakenSection
+              ticketId={ticket.id}
+              isStaff={true}
+              ticketStatus={ticket.currentStatus}
+              onActionSaved={() => loadTicketData(false)}
+            />
+          </div>
+
           {/* Dual-Channel Tabs: Public Comments vs Internal Notes */}
           <div className="card shadow-sm border-0">
             <div className="card-header bg-white p-0 border-bottom">
               <ul className="nav nav-tabs card-header-tabs m-0 border-0" role="tablist">
                 <li className="nav-item">
                   <button
+                    id="tab-public-comments"
                     role="tab"
                     aria-selected={activeTab === "public"}
+                    aria-controls="panel-public-comments"
                     className={`nav-link py-3 px-4 fw-semibold border-0 ${
                       activeTab === "public" ? "active text-success border-bottom border-success border-3" : "text-muted"
                     }`}
@@ -422,8 +509,10 @@ export default function StaffTicketDetail() {
                 </li>
                 <li className="nav-item">
                   <button
+                    id="tab-internal-notes"
                     role="tab"
                     aria-selected={activeTab === "internal"}
+                    aria-controls="panel-internal-notes"
                     className={`nav-link py-3 px-4 fw-semibold border-0 ${
                       activeTab === "internal"
                         ? "active text-warning-emphasis border-bottom border-warning border-3"
@@ -440,7 +529,7 @@ export default function StaffTicketDetail() {
             <div className="card-body">
               {/* Tab 1: Public Comments */}
               {activeTab === "public" && (
-                <div>
+                <div id="panel-public-comments" role="tabpanel" aria-labelledby="tab-public-comments">
                   <div className="mb-3 text-muted small">
                     Public comments are visible to the Requester, IT Staff, and Administrators.
                   </div>
@@ -458,10 +547,7 @@ export default function StaffTicketDetail() {
                                 {c.author.role.replace(/_/g, " ")}
                               </span>
                               <span className="text-muted" style={{ fontSize: "0.75rem" }}>
-                                {new Date(c.createdAt).toLocaleTimeString([], {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
+                                {formatBangkokDateTime(c.createdAt)}
                               </span>
                             </div>
                           </div>
@@ -500,12 +586,12 @@ export default function StaffTicketDetail() {
                 </div>
               )}
 
-              {/* Tab 2: Internal Notes (Amber / Confidential Styling) */}
+              {/* Tab 2: Internal Notes (Amber / Confidential Styling per ui-spec 1.3) */}
               {activeTab === "internal" && (
-                <div>
+                <div id="panel-internal-notes" role="tabpanel" aria-labelledby="tab-internal-notes">
                   <div
                     className="p-2 mb-3 rounded border d-flex align-items-center gap-2"
-                    style={{ backgroundColor: "#FFF3CD", borderColor: "#FFE69C", color: "#664D03" }}
+                    style={{ backgroundColor: "#FEF3C7", borderColor: "#D97706", color: "#92400E" }}
                   >
                     <ShieldAlert size={18} className="flex-shrink-0" />
                     <span className="small fw-semibold">
@@ -521,19 +607,16 @@ export default function StaffTicketDetail() {
                         <div
                           key={n.id}
                           className="p-3 rounded border"
-                          style={{ backgroundColor: "#FFFBEA", borderColor: "#FFE8A1" }}
+                          style={{ backgroundColor: "#FEF3C7", borderColor: "#D97706" }}
                         >
                           <div className="d-flex justify-content-between align-items-center mb-1">
                             <span className="fw-semibold small text-dark">{n.author.name}</span>
                             <div className="d-flex align-items-center gap-2">
-                              <span className="badge bg-warning text-dark" style={{ fontSize: "0.7rem" }}>
-                                Staff Only
+                              <span className="badge text-white" style={{ backgroundColor: "#D97706", fontSize: "0.7rem" }}>
+                                Internal Note: Staff Only
                               </span>
                               <span className="text-muted" style={{ fontSize: "0.75rem" }}>
-                                {new Date(n.createdAt).toLocaleTimeString([], {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
+                                {formatBangkokDateTime(n.createdAt)}
                               </span>
                             </div>
                           </div>
@@ -577,160 +660,222 @@ export default function StaffTicketDetail() {
 
         {/* Right Column: Operational Controls Panel */}
         <div className="col-12 col-lg-4">
-          <div className="card shadow-sm border-0 mb-3 sticky-top" style={{ top: "1rem" }}>
-            <div className="card-header bg-white py-3 fw-bold border-bottom">
-              Operational Controls
-            </div>
-            <div className="card-body">
-              {/* 1. Ticket Ownership / Claim / Reassign */}
-              <div className="mb-4">
-                <label className="form-label fw-semibold small text-muted mb-1">
-                  Ticket Ownership
-                </label>
-                <div className="d-flex align-items-center justify-content-between mb-2">
-                  <span className="small">
-                    Owner:{" "}
-                    {ticket.assignedTo ? (
-                      <strong className="text-dark">{ticket.assignedTo.name}</strong>
-                    ) : (
-                      <em className="text-muted">Unassigned</em>
+          <div className="sticky-lg-top" style={{ top: "1rem", maxHeight: "calc(100vh - 2rem)", overflowY: "auto" }}>
+            <div className="card shadow-sm border-0 mb-3">
+              <div className="card-header bg-white py-3 fw-bold border-bottom">
+                Operational Controls
+              </div>
+              <div className="card-body">
+                {/* 1. Ticket Ownership / Claim / Reassign */}
+                <div className="mb-4">
+                  <label className="form-label fw-semibold small text-muted mb-1">
+                    Ticket Ownership
+                  </label>
+                  <div className="d-flex align-items-center justify-content-between mb-2">
+                    <span className="small">
+                      Owner:{" "}
+                      {ticket.assignedTo ? (
+                        <strong className="text-dark">{ticket.assignedTo.name}</strong>
+                      ) : (
+                        <em className="text-muted">Unassigned</em>
+                      )}
+                    </span>
+                    {(!ticket.assignedTo || ticket.assignedTo.id !== user?.id) && (
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-success d-flex align-items-center gap-1"
+                        onClick={handleClaimTicket}
+                        disabled={isTicketLocked}
+                      >
+                        <UserCheck size={14} /> Claim Ticket
+                      </button>
                     )}
-                  </span>
-                  {(!ticket.assignedTo || ticket.assignedTo.id !== user?.id) && (
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-outline-success d-flex align-items-center gap-1"
-                      onClick={handleClaimTicket}
+                  </div>
+
+                  <div className="input-group input-group-sm">
+                    <select
+                      aria-label="Reassign Staff"
+                      className="form-select"
+                      value={selectedAssignee}
+                      onChange={(e) => setSelectedAssignee(e.target.value)}
+                      disabled={isTicketLocked}
                     >
-                      <UserCheck size={14} /> Claim Ticket
+                      <option value="">Unassigned</option>
+                      {staffUsers.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name} ({s.role === "ADMINISTRATOR" ? "Admin" : "Staff"})
+                        </option>
+                      ))}
+                    </select>
+                    <button className="btn btn-secondary" onClick={handleReassign} disabled={isTicketLocked}>
+                      Reassign
                     </button>
+                  </div>
+                  {isTicketLocked && (
+                    <div className="small text-muted mt-1">
+                      Cannot reassign a resolved, closed, or cancelled ticket.
+                    </div>
                   )}
                 </div>
 
-                <div className="input-group input-group-sm">
-                  <select
-                    aria-label="Reassign Staff"
-                    className="form-select"
-                    value={selectedAssignee}
-                    onChange={(e) => setSelectedAssignee(e.target.value)}
-                  >
-                    <option value="">Unassigned</option>
-                    {staffUsers.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name} ({s.role === "ADMINISTRATOR" ? "Admin" : "Staff"})
+                {/* 2. IT Priority */}
+                <div className="mb-4">
+                  <label className="form-label fw-semibold small text-muted mb-1">IT Priority</label>
+                  <div className="input-group input-group-sm">
+                    <select
+                      aria-label="IT Priority"
+                      className="form-select"
+                      value={selectedPriority}
+                      onChange={(e) => setSelectedPriority(e.target.value)}
+                      disabled={isTicketLocked}
+                    >
+                      <option value="LOW">Low</option>
+                      <option value="MEDIUM">Medium</option>
+                      <option value="HIGH">High</option>
+                    </select>
+                    <button className="btn btn-secondary" onClick={handlePriorityChange} disabled={isTicketLocked}>
+                      Update
+                    </button>
+                  </div>
+                  <div className="small text-muted mt-1">
+                    Requested Priority: <strong>{ticket.requestedPriority}</strong> (immutable)
+                  </div>
+                </div>
+
+                {/* 3. Ticket Status */}
+                <div className="mb-3">
+                  <label htmlFor="ticket-status-select" className="form-label fw-semibold small text-muted mb-1">
+                    Ticket Status
+                  </label>
+                  <div className="input-group input-group-sm">
+                    <select
+                      id="ticket-status-select"
+                      aria-label="Ticket Status"
+                      className="form-select"
+                      value={selectedStatus}
+                      onChange={(e) => setSelectedStatus(e.target.value)}
+                    >
+                      <option value={ticket.currentStatus}>
+                        {ticket.currentStatus.replace(/_/g, " ")} (Current)
                       </option>
-                    ))}
-                  </select>
-                  <button className="btn btn-secondary" onClick={handleReassign}>
-                    Reassign
-                  </button>
+                      {validNextStatuses.map((st) => (
+                        <option key={st} value={st}>
+                          {st.replace(/_/g, " ")}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      className="btn btn-success"
+                      disabled={selectedStatus === ticket.currentStatus}
+                      onClick={handleInitiateStatusChange}
+                    >
+                      Change Status
+                    </button>
+                  </div>
+
+                  {/* Inline Resolution Gate Alert shown only when RESOLVED is candidate transition */}
+                  {(validNextStatuses.includes("RESOLVED") || selectedStatus === "RESOLVED") &&
+                    ticket.resolutionGate &&
+                    !ticket.resolutionGate.ok && (
+                    <div className="alert alert-warning py-2 mt-2 small" role="alert">
+                      <div className="fw-semibold mb-1">Resolution Gate:</div>
+                      <ul className="mb-0 ps-3">
+                        {ticket.resolutionGate.reasons.map((r, i) => (
+                          <li key={i}>{r}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               </div>
+            </div>
 
-              {/* 2. IT Priority */}
-              <div className="mb-4">
-                <label className="form-label fw-semibold small text-muted mb-1">IT Priority</label>
-                <div className="input-group input-group-sm">
-                  <select
-                    aria-label="IT Priority"
-                    className="form-select"
-                    value={selectedPriority}
-                    onChange={(e) => setSelectedPriority(e.target.value)}
-                  >
-                    <option value="LOW">Low</option>
-                    <option value="MEDIUM">Medium</option>
-                    <option value="HIGH">High</option>
-                  </select>
-                  <button className="btn btn-secondary" onClick={handlePriorityChange}>
-                    Update
-                  </button>
-                </div>
-                <div className="small text-muted mt-1">
-                  Requested Priority: <strong>{ticket.requestedPriority}</strong> (immutable)
-                </div>
+            {/* 4. Status History Audit Trail Card */}
+            <div className="card shadow-sm border-0 mb-3">
+              <div className="card-header bg-white py-3 fw-bold border-bottom">
+                Status History
               </div>
-
-              {/* 3. Ticket Status */}
-              <div className="mb-3">
-                <label htmlFor="ticket-status-select" className="form-label fw-semibold small text-muted mb-1">
-                  Ticket Status
-                </label>
-                <div className="input-group input-group-sm">
-                  <select
-                    id="ticket-status-select"
-                    aria-label="Ticket Status"
-                    className="form-select"
-                    value={selectedStatus}
-                    onChange={(e) => setSelectedStatus(e.target.value)}
-                  >
-                    <option value={ticket.currentStatus}>
-                      {ticket.currentStatus.replace(/_/g, " ")} (Current)
-                    </option>
-                    {validNextStatuses.map((st) => (
-                      <option key={st} value={st}>
-                        {st.replace(/_/g, " ")}
-                      </option>
+              <div className="card-body p-0">
+                {historyLoading ? (
+                  <div className="p-3 text-center text-muted small">Loading history...</div>
+                ) : historyItems.length === 0 ? (
+                  <div className="p-3 text-center text-muted small">No status changes recorded.</div>
+                ) : (
+                  <ul className="list-group list-group-flush small">
+                    {historyItems.map((h) => (
+                      <li key={h.id} className="list-group-item py-2 px-3">
+                        <div className="d-flex justify-content-between align-items-center mb-1">
+                          <div>
+                            <span className="badge bg-secondary me-1">{h.fromStatus ? h.fromStatus.replace(/_/g, " ") : "ORIGIN"}</span>
+                            <span className="text-muted">to</span>{" "}
+                            <span className="badge bg-success ms-1">{h.toStatus.replace(/_/g, " ")}</span>
+                          </div>
+                          <span className="text-muted" style={{ fontSize: "0.75rem" }}>
+                            {formatBangkokDateTime(h.changedAt)}
+                          </span>
+                        </div>
+                        <div className="text-muted">
+                          by {h.changedBy ? h.changedBy.name : "System"}
+                          {h.reason && <span className="ms-1 text-dark">- Reason: {h.reason}</span>}
+                        </div>
+                      </li>
                     ))}
-                  </select>
-                  <button
-                    className="btn btn-success"
-                    disabled={selectedStatus === ticket.currentStatus}
-                    onClick={() => setIsStatusModalOpen(true)}
-                  >
-                    Change Status
-                  </button>
-                </div>
+                  </ul>
+                )}
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Status Change Confirmation Modal */}
-      {isStatusModalOpen && (
-        <div
-          className="modal fade show d-block"
-          tabIndex={-1}
-          style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
-          role="dialog"
-        >
-          <div className="modal-dialog modal-dialog-centered" role="document">
-            <div className="modal-content border-0 shadow">
-              <div className="modal-header border-bottom">
-                <h5 className="modal-title fw-bold d-flex align-items-center gap-2">
-                  <AlertTriangle className="text-warning" size={20} /> Confirm Status Change
-                </h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => setIsStatusModalOpen(false)}
-                />
-              </div>
-              <div className="modal-body py-4">
-                <p className="mb-0">
-                  Are you sure you want to change ticket status to {selectedStatus}?
-                </p>
-              </div>
-              <div className="modal-footer border-top">
-                <button
-                  type="button"
-                  className="btn btn-outline-secondary btn-sm"
-                  onClick={() => setIsStatusModalOpen(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-success btn-sm"
-                  onClick={handleConfirmStatusChange}
-                >
-                  Confirm Change
-                </button>
-              </div>
+      {/* Status Change Confirmation Modal with Accessible Modal */}
+      <Modal
+        isOpen={isStatusModalOpen}
+        onClose={() => setIsStatusModalOpen(false)}
+        title={
+          <>
+            <AlertTriangle className="text-warning" size={20} /> Confirm Status Change
+          </>
+        }
+        titleId="status-modal-title"
+        footer={
+          <>
+            <button
+              type="button"
+              className="btn btn-outline-secondary btn-sm"
+              onClick={() => setIsStatusModalOpen(false)}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="btn btn-success btn-sm"
+              onClick={handleConfirmStatusChange}
+              disabled={selectedStatus === "RESOLVED" && Boolean(ticket.resolutionGate && !ticket.resolutionGate.ok)}
+            >
+              Confirm Change
+            </button>
+          </>
+        }
+      >
+        <div>
+          {!(selectedStatus === "RESOLVED" && ticket.resolutionGate && !ticket.resolutionGate.ok) && (
+            <p className="mb-2">
+              Are you sure you want to change ticket status to {selectedStatus.replace(/_/g, " ")}?
+            </p>
+          )}
+          {gateReasons.length > 0 && (
+            <div className="alert alert-danger py-2 mt-2 small mb-0" role="alert">
+              <div className="fw-semibold mb-1">Cannot resolve ticket: Resolution Gate not satisfied</div>
+              <ul className="mb-0 ps-3">
+                {gateReasons.map((r, i) => (
+                  <li key={i}>{r}</li>
+                ))}
+              </ul>
             </div>
-          </div>
+          )}
         </div>
-      )}
+      </Modal>
     </div>
   );
 }

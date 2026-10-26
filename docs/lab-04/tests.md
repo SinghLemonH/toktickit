@@ -20,6 +20,7 @@ The following intentional contract changes evolved earlier sprint behavior:
 1. **Resolution Gate Enforcement**: In Lab 3, tickets could transition to `RESOLVED` directly without actions taken. In Lab 4, moving to `RESOLVED` requires an assigned owner, at least one completed Action Taken, and zero planned Actions Taken. Existing tests in `server/tests/lab-03/staff-ticket-detail.api.test.ts` must seed a completed Action Taken and supply `expectedVersion`.
 2. **Transition Matrix Evolution**: The direct transition from `OPEN` to `RESOLVED` permitted in Lab 3 is now retired in favor of the full lifecycle (`OPEN` -> `IN_PROGRESS` -> `RESOLVED`).
 3. **Optimistic Locking**: Status transitions and ticket assignments now require integer `expectedVersion`. Earlier tests are updated to fetch current version before invoking status mutations without weakening assertions.
+4. **Staff Ticket Detail Mock Additions**: Lab 3 UI test `client/tests/lab-03/StaffTicketDetail.test.tsx` was augmented to mock `getActionsTaken` and `getTicketStatusHistory` (returning empty arrays) when testing operational controls, ensuring existing assertions remain intact.
 
 ---
 
@@ -73,13 +74,13 @@ The following intentional contract changes evolved earlier sprint behavior:
 | **UI-01** | UI | FR-13, FR-15 | Staff dashboard metric cards (6 cards) and navigation | Cards display numbers and valid drill-down links | `client/tests/lab-04/StaffDashboard.test.tsx` | Planned |
 | **UI-02** | UI | AC-14, FR-18 | Staff dashboard loading, empty, and retry states | Skeleton rendered; retry button functional | `client/tests/lab-04/StaffDashboard.test.tsx` | Planned |
 | **UI-03** | UI | FR-12, FR-15 | Requester dashboard cards and attention tickets | Cards render correct values and navigate cleanly | `client/tests/lab-04/RequesterDashboard.test.tsx` | Planned |
-| **UI-04** | UI | FR-01, AC-03 | Actions Taken create form logic and validation | Follow-up note required only when checked | `client/tests/lab-04/ActionsTaken.test.tsx` | Planned |
-| **UI-05** | UI | AC-06, FR-05 | Requester read-only Actions Taken view | Renders list; write/edit buttons absent | `client/tests/lab-04/ActionsTaken.test.tsx` | Planned |
-| **UI-06** | UI | AC-19, FR-19 | Double submit prevention and form preservation | Button disabled while saving; text preserved | `client/tests/lab-04/ActionsTaken.test.tsx` | Planned |
-| **UI-07** | UI | AC-07, FR-06 | Resolution Gate feedback in status dropdown | Missing gate requirements displayed clearly | `client/tests/lab-04/TicketWorkflow.test.tsx` | Planned |
+| **UI-04** | UI | FR-01, AC-03 | Actions Taken create form logic and validation | Follow-up note required only when checked | `client/tests/lab-04/ActionsTaken.test.tsx` | Passed |
+| **UI-05** | UI | AC-06, FR-05 | Requester read-only Actions Taken view | Renders list; write/edit buttons absent | `client/tests/lab-04/ActionsTaken.test.tsx` | Passed |
+| **UI-06** | UI | AC-19, FR-19 | Double submit prevention and form preservation | Button disabled while saving; text preserved | `client/tests/lab-04/ActionsTaken.test.tsx` | Passed |
+| **UI-07** | UI | AC-07, FR-06 | Resolution Gate feedback in status dropdown | Missing gate requirements displayed clearly | `client/tests/lab-04/TicketWorkflow.test.tsx` | Passed |
 | **UI-08** | UI | AC-20, FR-20 | Forbidden screen on unauthorized route | Renders 403 page with link to Dashboard | `client/tests/lab-04/Navigation.test.tsx` | Planned |
-| **UI-09** | UI | FR-04 | Actions Taken list renders Completed By and Assignee | Visible attribution for completed actions | `client/tests/lab-04/ActionsTaken.test.tsx` | Planned |
-| **UI-10** | UI | AC-15, FR-08 | Requester Reopen button and modal reason input | Opens modal, submits reason, refreshes status | `client/tests/lab-04/TicketWorkflow.test.tsx` | Planned |
+| **UI-09** | UI | FR-04 | Actions Taken list renders Completed By and Assignee | Visible attribution for completed actions | `client/tests/lab-04/ActionsTaken.test.tsx` | Passed |
+| **UI-10** | UI | AC-15, FR-08 | Requester Reopen button and modal reason input | Opens modal, submits reason, refreshes status | `client/tests/lab-04/TicketWorkflow.test.tsx` | Passed |
 | **STYLE-01** | UI Style | AC-18 | Zen Green tokens and computed badge styles | Playwright verification of `theme.css` tokens and badge text cues | `e2e/lab-04/responsive-accessibility.spec.ts` | Planned |
 | **E2E-01** | E2E | AC-01, AC-06 | Multiple staff record actions on single ticket | Both actions visible; requester view read-only | `e2e/lab-04/actions-taken-flow.spec.ts` | Planned |
 | **E2E-02** | E2E | AC-07, AC-08, AC-15 | Full ticket lifecycle from create to reopen | Gate enforced; resolution recorded; reopen works | `e2e/lab-04/ticket-resolution.spec.ts` | Planned |

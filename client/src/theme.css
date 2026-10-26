@@ -211,6 +211,14 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 600;
 }
 
+/* Ensure accessible contrast on dark top navigation */
+.navbar-dark .zg-nav-active {
+  border-bottom: 2px solid #a7f3d0;
+  color: #ffffff !important;
+  font-weight: 600;
+}
+
+
 /* Empty / error / no-results panels: icon + short text, calm and centered. */
 .zg-state-panel {
   display: flex;
