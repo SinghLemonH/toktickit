@@ -36,6 +36,8 @@ const mockTicketDetail: api.TicketDetail = {
   isProblemResolvedIndicated: true, // test resolution banner
   assignedToId: null,
   assignedTo: null,
+  version: 1,
+  allowedTransitions: ["OPEN", "CANCELLED"],
   attachments: [],
 };
 
@@ -121,7 +123,7 @@ describe("StaffTicketDetail Component (UI-04, AC-12)", () => {
     const claimButton = await screen.findByRole("button", { name: /claim ticket/i });
     await user.click(claimButton);
 
-    expect(assignSpy).toHaveBeenCalledWith(77, mockStaffUser.id);
+    expect(assignSpy).toHaveBeenCalledWith(77, mockStaffUser.id, 1);
   });
 
   it("displays confirmation modal before changing ticket status", async () => {
@@ -147,7 +149,7 @@ describe("StaffTicketDetail Component (UI-04, AC-12)", () => {
     const confirmButton = screen.getByRole("button", { name: /confirm change/i });
     await user.click(confirmButton);
 
-    expect(statusSpy).toHaveBeenCalledWith(77, "OPEN");
+    expect(statusSpy).toHaveBeenCalledWith(77, "OPEN", 1);
   });
 
   it("switches to Internal Notes tab and renders confidential note interface", async () => {

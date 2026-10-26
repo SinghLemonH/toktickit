@@ -227,7 +227,7 @@ export interface TicketDetail {
 }
 
 export async function getTicketDetail(
-  requesterId: number,
+  requesterId: number | undefined,
   ticketId: number
 ): Promise<TicketDetail> {
   const res = await fetch(`${API_URL}/api/tickets/${ticketId}`, {
