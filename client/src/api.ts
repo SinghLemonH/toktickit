@@ -801,4 +801,90 @@ export async function reopenTicket(
     });
   }
   return res.json();
-}
+}
+
+// Lab 4 - Issue #51: Dashboard APIs
+
+export interface DashboardTicket {
+  id: number;
+  ticketNumber: string;
+  title: string;
+  currentStatus: string;
+  updatedAt: string;
+}
+
+export interface RequesterDashboardData {
+  metrics: {
+    myOpenTickets: number;
+    waitingForRequester: number;
+    inProgress: number;
+    resolved: number;
+    closed: number;
+  };
+  links: {
+    myOpenTickets: string;
+    waitingForRequester: string;
+    inProgress: string;
+    resolved: string;
+    closed: string;
+  };
+  attentionTickets: DashboardTicket[];
+  recentTickets: DashboardTicket[];
+  timeZone: string;
+  generatedAt: string;
+}
+
+export interface StaffDashboardData {
+  metrics: {
+    newTickets: number;
+    openTickets: number;
+    inProgress: number;
+    waitingForRequester: number;
+    myAssigned: number;
+    unassigned: number;
+  };
+  links: {
+    newTickets: string;
+    openTickets: string;
+    inProgress: string;
+    waitingForRequester: string;
+    myAssigned: string;
+    unassigned: string;
+  };
+  recentTickets: DashboardTicket[];
+  userCounts?: {
+    totalUsers: number;
+    activeUsers: number;
+    inactiveUsers: number;
+  };
+  timeZone: string;
+  generatedAt: string;
+}
+
+export async function getRequesterDashboard(): Promise<RequesterDashboardData> {
+  const res = await fetch(`${API_URL}/api/dashboard/requester`, {
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new ApiError(data.error?.message || "Failed to load requester dashboard", {
+      code: data.error?.code,
+      status: res.status,
+    });
+  }
+  return res.json();
+}
+
+export async function getStaffDashboard(): Promise<StaffDashboardData> {
+  const res = await fetch(`${API_URL}/api/dashboard/staff`, {
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new ApiError(data.error?.message || "Failed to load staff dashboard", {
+      code: data.error?.code,
+      status: res.status,
+    });
+  }
+  return res.json();
+}

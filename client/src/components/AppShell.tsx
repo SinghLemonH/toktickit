@@ -73,6 +73,14 @@ export default function AppShell({ children }: { children: ReactNode }) {
               <>
                 <Link
                   className={`nav-link text-white d-flex align-items-center gap-1 ${
+                    location.pathname === "/dashboard" ? "zg-nav-active fw-bold" : ""
+                  }`}
+                  to="/dashboard"
+                >
+                  <LayoutList size={16} aria-hidden="true" /> Dashboard
+                </Link>
+                <Link
+                  className={`nav-link text-white d-flex align-items-center gap-1 ${
                     location.pathname === "/tickets" ? "zg-nav-active fw-bold" : ""
                   }`}
                   to="/tickets"
@@ -91,14 +99,24 @@ export default function AppShell({ children }: { children: ReactNode }) {
             )}
 
             {(userRole === "IT_STAFF" || userRole === "ADMINISTRATOR") && (
-              <Link
-                className={`nav-link text-white d-flex align-items-center gap-1 ${
-                  location.pathname.startsWith("/staff/queue") ? "zg-nav-active fw-bold" : ""
-                }`}
-                to="/staff/queue"
-              >
-                <Inbox size={16} aria-hidden="true" /> Ticket Queue
-              </Link>
+              <>
+                <Link
+                  className={`nav-link text-white d-flex align-items-center gap-1 ${
+                    location.pathname === "/staff/dashboard" ? "zg-nav-active fw-bold" : ""
+                  }`}
+                  to="/staff/dashboard"
+                >
+                  <LayoutList size={16} aria-hidden="true" /> Dashboard
+                </Link>
+                <Link
+                  className={`nav-link text-white d-flex align-items-center gap-1 ${
+                    location.pathname.startsWith("/staff/queue") ? "zg-nav-active fw-bold" : ""
+                  }`}
+                  to="/staff/queue"
+                >
+                  <Inbox size={16} aria-hidden="true" /> Ticket Queue
+                </Link>
+              </>
             )}
 
             {userRole === "ADMINISTRATOR" && (

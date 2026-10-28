@@ -10,6 +10,8 @@ import TicketDetail from "./pages/TicketDetail.js";
 import StaffTicketQueue from "./pages/StaffTicketQueue.js";
 import StaffTicketDetail from "./pages/StaffTicketDetail.js";
 import UserManagement from "./pages/UserManagement.js";
+import RequesterDashboard from "./pages/RequesterDashboard.js";
+import StaffDashboard from "./pages/StaffDashboard.js";
 import RouteGuard from "./components/RouteGuard.js";
 import AppShell from "./components/AppShell.js";
 import App from "./App.js";
@@ -29,6 +31,29 @@ export default function AppRouter() {
 
             {/* Lab 1 Health Check Demo */}
             <Route path="/system-status" element={<App />} />
+
+            {/* Lab 4 Dashboard Routes - Primary Landing Page */}
+            <Route
+              path="/dashboard"
+              element={
+                <RouteGuard>
+                  <AppShell>
+                    <RequesterDashboard />
+                  </AppShell>
+                </RouteGuard>
+              }
+            />
+
+            <Route
+              path="/staff/dashboard"
+              element={
+                <RouteGuard allowedRoles={["IT_STAFF", "ADMINISTRATOR"]}>
+                  <AppShell>
+                    <StaffDashboard />
+                  </AppShell>
+                </RouteGuard>
+              }
+            />
 
             {/* Requester Routes */}
             <Route
@@ -99,8 +124,8 @@ export default function AppRouter() {
               }
             />
 
-            <Route path="/" element={<Navigate to="/tickets" replace />} />
-            <Route path="*" element={<Navigate to="/tickets" replace />} />
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </RequesterProvider>
       </AuthProvider>
