@@ -30,7 +30,7 @@ The following intentional contract changes evolved earlier sprint behavior:
 | :---: | :---: | :---: | :--- | :--- | :--- | :---: |
 | **UNIT-01** | Unit | BR-12, BR-13 | Transition matrix evaluation by role (including PENDING) | Returns true for valid transitions; false for invalid; Cancelled has no exits | `server/tests/lab-04/status-transitions.unit.test.ts` | Passed |
 | **UNIT-02** | Unit | BR-11 | Resolution gate pure evaluation function | Fails when no owner, no completed action, or planned actions exist; passes when satisfied | `server/tests/lab-04/resolution-gate.unit.test.ts` | Passed |
-| **UNIT-03** | Unit | BR-06, BR-07, BR-08 | Action Taken input validator | Validates description length, follow-up note conditionally, minute precision on date | `server/tests/lab-04/action-taken.unit.test.ts` | Planned |
+| **UNIT-03** | Unit | BR-06, BR-07, BR-08 | Action Taken input validator | Validates description length, follow-up note conditionally, minute precision on date | `server/tests/lab-04/action-taken.unit.test.ts` | Passed |
 | **API-01** | API | AC-01, FR-01, FR-02 | Create valid Action Taken with authenticated staff | HTTP 201; saved under correct ticket; `performedBy` set to session user | `server/tests/lab-04/actions-taken.api.test.ts` | Passed |
 | **API-02** | API | BR-04 | Attempt to supply spoofed `performedById` | Ignored; creator remains authenticated caller | `server/tests/lab-04/actions-taken.api.test.ts` | Passed |
 | **API-03** | API | AC-01, BR-02, BR-05 | Assign action to a different active staff user | HTTP 201; action saved with designated assignee | `server/tests/lab-04/actions-taken.api.test.ts` | Passed |
@@ -71,14 +71,14 @@ The following intentional contract changes evolved earlier sprint behavior:
 | **PERF-01** | Smoke | BR-21 | Dashboard endpoint latency budget | Response time < 500ms on seeded dataset | `server/tests/lab-04/performance-smoke.test.ts` | Passed |
 | **MIG-01** | Migration | AC-16, BR-26 | Additive migration preserves existing data and rollback | Executed in isolated temp database/schema; tables and counts verified | `server/tests/lab-04/migration-seed.test.ts` | Passed |
 | **MIG-02** | Migration | BR-26 | Seed idempotency verification | Running seed twice produces identical row counts | `server/tests/lab-04/migration-seed.test.ts` | Passed |
-| **UI-01** | UI | FR-13, FR-15 | Staff dashboard metric cards (6 cards) and navigation | Cards display numbers and valid drill-down links | `client/tests/lab-04/StaffDashboard.test.tsx` | Planned |
-| **UI-02** | UI | AC-14, FR-18 | Staff dashboard loading, empty, and retry states | Skeleton rendered; retry button functional | `client/tests/lab-04/StaffDashboard.test.tsx` | Planned |
-| **UI-03** | UI | FR-12, FR-15 | Requester dashboard cards and attention tickets | Cards render correct values and navigate cleanly | `client/tests/lab-04/RequesterDashboard.test.tsx` | Planned |
+| **UI-01** | UI | FR-13, FR-15 | Staff dashboard metric cards (6 cards) and navigation | Cards display numbers and valid drill-down links | `client/tests/lab-04/StaffDashboard.test.tsx` | Passed |
+| **UI-02** | UI | AC-14, FR-18 | Staff dashboard loading, empty, and retry states | Skeleton rendered; retry button functional | `client/tests/lab-04/StaffDashboard.test.tsx` | Passed |
+| **UI-03** | UI | FR-12, FR-15 | Requester dashboard cards and attention tickets | Cards render correct values and navigate cleanly | `client/tests/lab-04/RequesterDashboard.test.tsx` | Passed |
 | **UI-04** | UI | FR-01, AC-03 | Actions Taken create form logic and validation | Follow-up note required only when checked | `client/tests/lab-04/ActionsTaken.test.tsx` | Passed |
 | **UI-05** | UI | AC-06, FR-05 | Requester read-only Actions Taken view | Renders list; write/edit buttons absent | `client/tests/lab-04/ActionsTaken.test.tsx` | Passed |
 | **UI-06** | UI | AC-19, FR-19 | Double submit prevention and form preservation | Button disabled while saving; text preserved | `client/tests/lab-04/ActionsTaken.test.tsx` | Passed |
 | **UI-07** | UI | AC-07, FR-06 | Resolution Gate feedback in status dropdown | Missing gate requirements displayed clearly | `client/tests/lab-04/TicketWorkflow.test.tsx` | Passed |
-| **UI-08** | UI | AC-20, FR-20 | Forbidden screen on unauthorized route | Renders 403 page with link to Dashboard | `client/tests/lab-04/Navigation.test.tsx` | Planned |
+| **UI-08** | UI | AC-20, FR-20 | Forbidden screen on unauthorized route | Renders 403 page with link to Dashboard | `client/tests/lab-04/Navigation.test.tsx` | Passed |
 | **UI-09** | UI | FR-04 | Actions Taken list renders Completed By and Assignee | Visible attribution for completed actions | `client/tests/lab-04/ActionsTaken.test.tsx` | Passed |
 | **UI-10** | UI | AC-15, FR-08 | Requester Reopen button and modal reason input | Opens modal, submits reason, refreshes status | `client/tests/lab-04/TicketWorkflow.test.tsx` | Passed |
 | **STYLE-01** | UI Style | AC-18 | Zen Green tokens and computed badge styles | Playwright verification of `theme.css` tokens and badge text cues | `e2e/lab-04/responsive-accessibility.spec.ts` | Planned |
@@ -88,8 +88,8 @@ The following intentional contract changes evolved earlier sprint behavior:
 | **E2E-04** | E2E | AC-02 | Requester dashboard journeys and attention items | Shows attention tickets; drill-down to My Tickets | `e2e/lab-04/dashboards.spec.ts` | Planned |
 | **RESP-01** | Responsive | AC-18 | Multi-viewport inspection across 1280, 768, 375 | Zero horizontal scroll; no clipping or overlap | `e2e/lab-04/responsive-accessibility.spec.ts` | Planned |
 | **A11Y-01** | Accessibility | AC-18 | Keyboard navigation and visible focus rings | Accessible Tab cycle; focus trap in modals | `e2e/lab-04/responsive-accessibility.spec.ts` | Planned |
-| **TSC-01** | Typecheck | DoD 6 | TypeScript strict compilation without emit | Zero errors on `server` and `client` | `npx tsc --noEmit` | Planned |
-| **REG-01** | Regression | AC-17, FR-17 | Complete Lab 1 to Lab 3 backend test suites | All suites pass 100% after documented contract adjustments | `server/tests/lab-01..03/*` | Planned |
-| **REG-02** | Regression | AC-17, FR-17 | Complete Lab 1 to Lab 3 client test suites | All suites pass 100% without regression | `client/tests/lab-01..03/*` | Planned |
+| **TSC-01** | Typecheck | DoD 6 | TypeScript strict compilation without emit | Zero errors on `server` and `client` | `npm run build` in `server/` and `client/` | Passed |
+| **REG-01** | Regression | AC-17, FR-17 | Complete Lab 1 to Lab 3 backend test suites | All suites pass 100% after documented contract adjustments | `server/tests/lab-01..03/*` | Passed |
+| **REG-02** | Regression | AC-17, FR-17 | Complete Lab 1 to Lab 3 client test suites | All suites pass 100% without regression | `client/tests/lab-01..03/*` | Passed |
 | **REG-E2E-01** | Regression | AC-17 | Lab 2 Requester Ticket Flow E2E | Passes with session login through /login | `e2e/lab-02/requester-ticket-flow.spec.ts` | Planned |
 | **REG-E2E-02** | Regression | AC-17 | Lab 3 Authentication, Staff & Admin E2E | All 3 Playwright specs pass cleanly | `e2e/lab-03/*` | Planned |

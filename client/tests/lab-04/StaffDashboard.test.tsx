@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { BrowserRouter } from "react-router-dom";
-import { AuthProvider } from "../../src/context/AuthContext.js";
+import { AuthContext, type AuthContextType, type AuthUser } from "../../src/context/AuthContext.js";
 import StaffDashboard from "../../src/pages/StaffDashboard.js";
 import * as api from "../../src/api.js";
 
@@ -72,13 +72,28 @@ const mockEmptyDashboardData = {
   generatedAt: "2026-10-11T10:00:00.000Z",
 };
 
-function renderWithAuth(component: React.ReactNode, role: string = "IT_STAFF") {
-  const mockUser = { id: 1, name: "Test Staff", email: "staff@test.com", role };
+function renderWithAuth(component: React.ReactNode, role: AuthUser["role"] = "IT_STAFF") {
+  const mockUser: AuthUser = {
+    id: 1,
+    name: "Test Staff",
+    email: "staff@test.com",
+    role,
+    mustChangePassword: false,
+  };
+  const auth: AuthContextType = {
+    user: mockUser,
+    loading: false,
+    isConfigured: true,
+    login: vi.fn(),
+    logout: vi.fn(),
+    changePassword: vi.fn(),
+    refreshUser: vi.fn(),
+  };
   return render(
     <BrowserRouter>
-      <AuthProvider defaultUser={mockUser}>
+      <AuthContext.Provider value={auth}>
         {component}
-      </AuthProvider>
+      </AuthContext.Provider>
     </BrowserRouter>
   );
 }
@@ -199,12 +214,13 @@ describe("StaffDashboard Component (Lab 4)", () => {
     });
   });
 
-  // Temporarily skip administrator test due to AuthProvider complexity
-  // it("displays user counts section for Administrator (FR-14)", async () => {
-  //   vi.mocked(api.getStaffDashboard).mockResolvedValue(mockStaffDashboardData);
-  //   renderWithAuth(<StaffDashboard />, "ADMINISTRATOR");
-  //   await waitFor(() => {
-  //     expect(screen.getByText("User Accounts")).toBeInTheDocument();
-  //   });
-  // });
+  it("displays user account counts for Administrators (FR-14)", async () => {
+    vi.mocked(api.getStaffDashboard).mockResolvedValue(mockStaffDashboardData);
+    renderWithAuth(<StaffDashboard />, "ADMINISTRATOR");
+    await waitFor(() => {
+      expect(screen.getByText("User Accounts")).toBeInTheDocument();
+      expect(screen.getByText("25")).toBeInTheDocument();
+      expect(screen.getByText("Manage Users")).toBeInTheDocument();
+    });
+  });
 });

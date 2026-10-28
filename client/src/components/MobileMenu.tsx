@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { X, LayoutList, PlusCircle, UserCircle2, LogOut, Inbox, Users } from "lucide-react";
+import { X, LayoutList, PlusCircle, UserCircle2, LogOut, Inbox, Users, RefreshCcw } from "lucide-react";
 import type { SelectedRequester } from "../context/RequesterContext.js";
 import { useAuth } from "../context/AuthContext.js";
 
@@ -93,9 +93,9 @@ export default function MobileMenu({
           {(userRole === "IT_STAFF" || userRole === "ADMINISTRATOR") && (
             <>
               <Link
-                to="/staff/dashboard"
+                to="/dashboard"
                 className={`nav-link d-flex align-items-center gap-2 ${
-                  activePath === "/staff/dashboard" ? "zg-nav-active" : ""
+                  activePath === "/dashboard" ? "zg-nav-active" : ""
                 }`}
                 onClick={onClose}
               >

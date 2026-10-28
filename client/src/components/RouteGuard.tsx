@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Navigate } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { useRequester } from "../context/RequesterContext.js";
 import { useAuth } from "../context/AuthContext.js";
 
@@ -24,9 +24,18 @@ export default function RouteGuard({ children, allowedRoles }: RouteGuardProps) 
       return <Navigate to="/change-password" replace />;
     }
     if (allowedRoles && !allowedRoles.includes(user.role as any)) {
-      // Unauthorized role redirected to default view
-      const target = user.role === "REQUESTER" ? "/tickets" : "/staff/queue";
-      return <Navigate to={target} replace />;
+      const dashboard = "/dashboard";
+      return (
+        <main className="container py-5">
+          <div className="alert alert-warning" role="alert">
+            <h1 className="h4">Access Denied</h1>
+            <p className="mb-3">You do not have permission to view this page.</p>
+            <Link className="btn btn-primary" to={dashboard}>
+              Return to Dashboard
+            </Link>
+          </div>
+        </main>
+      );
     }
     return <>{children}</>;
   }

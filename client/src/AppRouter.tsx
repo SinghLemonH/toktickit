@@ -9,8 +9,7 @@ import TicketDetail from "./pages/TicketDetail.js";
 import StaffTicketQueue from "./pages/StaffTicketQueue.js";
 import StaffTicketDetail from "./pages/StaffTicketDetail.js";
 import UserManagement from "./pages/UserManagement.js";
-import RequesterDashboard from "./pages/RequesterDashboard.js";
-import StaffDashboard from "./pages/StaffDashboard.js";
+import RoleDashboard from "./pages/RoleDashboard.js";
 import RouteGuard from "./components/RouteGuard.js";
 import AppShell from "./components/AppShell.js";
 import App from "./App.js";
@@ -37,22 +36,13 @@ export default function AppRouter() {
               element={
                 <RouteGuard>
                   <AppShell>
-                    <RequesterDashboard />
+                    <RoleDashboard />
                   </AppShell>
                 </RouteGuard>
               }
             />
 
-            <Route
-              path="/staff/dashboard"
-              element={
-                <RouteGuard allowedRoles={["IT_STAFF", "ADMINISTRATOR"]}>
-                  <AppShell>
-                    <StaffDashboard />
-                  </AppShell>
-                </RouteGuard>
-              }
-            />
+            <Route path="/staff/dashboard" element={<Navigate to="/dashboard" replace />} />
 
             {/* Requester Routes */}
             <Route

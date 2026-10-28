@@ -102,9 +102,9 @@ export default function AppShell({ children }: { children: ReactNode }) {
               <>
                 <Link
                   className={`nav-link text-white d-flex align-items-center gap-1 ${
-                    location.pathname === "/staff/dashboard" ? "zg-nav-active fw-bold" : ""
+                    location.pathname === "/dashboard" ? "zg-nav-active fw-bold" : ""
                   }`}
-                  to="/staff/dashboard"
+                  to="/dashboard"
                 >
                   <LayoutList size={16} aria-hidden="true" /> Dashboard
                 </Link>
