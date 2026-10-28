@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { RequesterProvider } from "./context/RequesterContext.js";
 import { AuthProvider } from "./context/AuthContext.js";
-import RequesterSelection from "./pages/RequesterSelection.js";
 import Login from "./pages/Login.js";
 import ChangePassword from "./pages/ChangePassword.js";
 import MyTickets from "./pages/MyTickets.js";
