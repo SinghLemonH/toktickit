@@ -2,13 +2,13 @@ import { test, expect } from "@playwright/test";
 import path from "node:path";
 import fs from "node:fs";
 
-const SCREENSHOTS_DIR = path.resolve(process.cwd(), "artifacts/lab-02/screenshots");
+const SCREENSHOTS_DIR = path.resolve(process.cwd(), "artifacts/lab-04/screenshots/regression/lab-02");
 fs.mkdirSync(path.join(SCREENSHOTS_DIR, "create-ticket"), { recursive: true });
 fs.mkdirSync(path.join(SCREENSHOTS_DIR, "my-tickets"), { recursive: true });
 fs.mkdirSync(path.join(SCREENSHOTS_DIR, "ticket-detail"), { recursive: true });
 
 // Create a dummy file for attachment tests
-const DUMMY_ATTACHMENT_PATH = path.resolve(process.cwd(), "artifacts/lab-02/sample_evidence.pdf");
+const DUMMY_ATTACHMENT_PATH = path.resolve(process.cwd(), "test-results/sample_evidence.pdf");
 fs.mkdirSync(path.dirname(DUMMY_ATTACHMENT_PATH), { recursive: true });
 fs.writeFileSync(DUMMY_ATTACHMENT_PATH, "%PDF-1.4 dummy pdf content for e2e testing");
 
@@ -19,21 +19,16 @@ test.describe.serial("Requester Ticket Flow (E2E)", () => {
   test("E2E-01: Select Requester A -> create ticket -> verify in My Tickets -> switch to Requester B -> verify isolation", async ({
     page,
   }) => {
-    // 1. Visit selector
-    await page.goto("/select-requester");
-    await expect(page.locator("h1")).toContainText(/Select Requester/i);
-    await page.screenshot({ path: path.join(SCREENSHOTS_DIR, "select-requester.png") });
+    // 1. Sign in as Requester A (Jennifer Anderson).
+    await page.goto("/login");
+    await page.getByLabel(/email/i).fill("jennifer.anderson@example.com");
+    await page.locator("#password").fill("Password123!");
+    await page.locator('button[type="submit"]').click();
+    await expect(page).toHaveURL(/\/dashboard/);
+    await page.screenshot({ path: path.join(SCREENSHOTS_DIR, "requester-dashboard.png") });
 
-    // 2. Select Requester A (Jennifer Anderson)
-    await page.selectOption("#requester-select", { label: "Jennifer Anderson" });
-    await page.click("button:has-text('Continue')");
-
-    // 3. Arrive at My Tickets
-    await expect(page).toHaveURL(/\/tickets/);
-    await expect(page.locator("h1")).toContainText(/My Tickets/i);
-
-    // 4. Navigate to Create Ticket
-    await page.click("a:has-text('Create Ticket'), a:has-text('New Ticket')");
+    // 2. Navigate to Create Ticket from the role dashboard.
+    await page.getByRole("link", { name: "Create Ticket" }).first().click();
     await expect(page).toHaveURL(/\/tickets\/create/);
     await expect(page.locator("h1")).toContainText(/Create Ticket/i);
 
@@ -62,7 +57,7 @@ test.describe.serial("Requester Ticket Flow (E2E)", () => {
     await fileChooser.setFiles(DUMMY_ATTACHMENT_PATH);
     await expect(page.locator("li:has-text('sample_evidence.pdf')")).toBeVisible();
 
-    // 7. Submit form
+    // 3. Submit form
     await page.click("button:has-text('Submit')");
 
     // 8. Verify confirmation screen
@@ -73,7 +68,7 @@ test.describe.serial("Requester Ticket Flow (E2E)", () => {
 
     await page.screenshot({ path: path.join(SCREENSHOTS_DIR, "create-ticket/success.png") });
 
-    // 9. Return to My Tickets
+    // 4. Return to My Tickets
     await page.click("button:has-text('My Tickets')");
     await expect(page).toHaveURL(/\/tickets/);
     await expect(page.locator("table a", { hasText: createdTicketNumber })).toBeVisible();
@@ -86,13 +81,29 @@ test.describe.serial("Requester Ticket Flow (E2E)", () => {
     const href = await ticketLink.getAttribute("href");
     createdTicketId = href?.split("/").pop() || "";
 
-    // 10. Switch to Requester B (Michael Brown)
-    await page.click("button:has-text('Change Requester')");
-    await expect(page).toHaveURL(/\/select-requester/);
-    await page.selectOption("#requester-select", { label: "Michael Brown" });
-    await page.click("button:has-text('Continue')");
+    // 5. Sign in as Requester B and verify ticket ownership isolation.
+    await page.getByRole("button", { name: "Log Out" }).click();
+    await expect(page).toHaveURL(/\/login/);
+    await page.getByLabel(/email/i).fill("emily.davis@example.com");
+    await page.locator("#password").fill("Password123!");
+    await page.locator('button[type="submit"]').click();
+    await page.waitForTimeout(500);
+    let requesterBPassword = "Password123!";
+    if (page.url().endsWith("/login")) {
+      requesterBPassword = "EmilyNewSecurePass123!";
+      await page.locator("#password").fill(requesterBPassword);
+      await page.locator('button[type="submit"]').click();
+    }
+    if (page.url().endsWith("/change-password")) {
+      await page.locator("#currentPassword").fill(requesterBPassword);
+      await page.locator("#newPassword").fill("EmilyNewSecurePass123!");
+      await page.locator("#confirmPassword").fill("EmilyNewSecurePass123!");
+      await page.locator('button[type="submit"]').click();
+    }
 
-    // 11. Confirm Requester A's ticket does NOT appear in Requester B's tickets
+    // 6. Confirm Requester A's ticket does NOT appear in Requester B's tickets.
+    await expect(page).toHaveURL(/\/(dashboard|change-password)/);
+    await page.goto("/tickets");
     await expect(page).toHaveURL(/\/tickets/);
     await expect(page.locator(`text=${createdTicketNumber}`)).toHaveCount(0);
     await page.screenshot({ path: path.join(SCREENSHOTS_DIR, "my-tickets/requester-b.png") });
@@ -100,9 +111,11 @@ test.describe.serial("Requester Ticket Flow (E2E)", () => {
 
   test("E2E-02: Ticket Detail, Add Attachment, Soft Removal with Reason", async ({ page }) => {
     // 1. Select Requester A
-    await page.goto("/select-requester");
-    await page.selectOption("#requester-select", { label: "Jennifer Anderson" });
-    await page.click("button:has-text('Continue')");
+    await page.goto("/login");
+    await page.getByLabel(/email/i).fill("jennifer.anderson@example.com");
+    await page.locator("#password").fill("Password123!");
+    await page.locator('button[type="submit"]').click();
+    await expect(page).toHaveURL(/\/dashboard/);
 
     // 2. Open the ticket detail
     await page.goto(`/tickets/${createdTicketId}`);
@@ -146,10 +159,11 @@ test.describe.serial("Requester Ticket Flow (E2E)", () => {
 
   test("Cross-Requester Direct Access Protection (AC-03, AC-20)", async ({ page }) => {
     // 1. Select Requester B (Michael Brown)
-    await page.goto("/select-requester");
-    await page.selectOption("#requester-select", { label: "Michael Brown" });
-    await page.click("button:has-text('Continue')");
-    await expect(page).toHaveURL(/\/tickets/);
+    await page.goto("/login");
+    await page.getByLabel(/email/i).fill("emily.davis@example.com");
+    await page.locator("#password").fill("EmilyNewSecurePass123!");
+    await page.locator('button[type="submit"]').click();
+    await expect(page).toHaveURL(/\/dashboard/);
 
     // 2. Attempt direct URL access to Requester A's ticket
     await page.goto(`/tickets/${createdTicketId}`);
@@ -161,9 +175,11 @@ test.describe.serial("Requester Ticket Flow (E2E)", () => {
 
   test("RESP: Capture Responsive Screenshots at 375px, 850px, 1280px", async ({ page }) => {
     // Select Requester A
-    await page.goto("/select-requester");
-    await page.selectOption("#requester-select", { label: "Jennifer Anderson" });
-    await page.click("button:has-text('Continue')");
+    await page.goto("/login");
+    await page.getByLabel(/email/i).fill("jennifer.anderson@example.com");
+    await page.locator("#password").fill("Password123!");
+    await page.locator('button[type="submit"]').click();
+    await expect(page).toHaveURL(/\/dashboard/);
 
     const viewports = [
       { name: "desktop", width: 1280, height: 800 },

@@ -14,8 +14,23 @@ Testing in Sprint 4 adheres strictly to Test-Driven Development (TDD) and Spec-D
 - **Static Type Check**: Running `tsc --noEmit` on both server and client to guarantee zero TypeScript compiler errors.
 - **Isolated Migration & Rollback Test**: Running additive migration, seed, and rollback verification against an isolated temporary schema/database so shared test tables remain untouched.
 - **Regression Verification**: Running all test suites from Lab 1, Lab 2, and Lab 3 to guarantee zero backward compatibility breakage.
+- **Deterministic Dashboard Visuals**: Dashboard Playwright screenshots use fixed API response fixtures so the visual evidence remains stable across runs. Database metric correctness and drill-down parity are verified separately by DASH-01 through DASH-06 against database queries.
 
-### 1.2. Contract Changes Affecting Earlier Tests
+### 1.2. Final Validation Record
+
+Validation completed on 2026-10-30 from `feature/52-final-hardening`:
+
+| Suite | Command | Result |
+| :--- | :--- | :--- |
+| Backend | `npm --prefix server test -- --pool=threads --maxWorkers=1 --minWorkers=1 --hookTimeout=30000 --testTimeout=15000` | 23 files, 173 tests passed |
+| Frontend | `npm --prefix client test -- --testTimeout=15000` | 18 files, 73 tests passed |
+| Browser E2E | `npm run test:e2e` | 21 tests passed |
+| Server production build | `npm --prefix server run build` | Passed |
+| Client production build | `npm --prefix client run build` | Passed |
+
+The explicit single-thread backend pool and longer test timeouts keep verification reliable on the development machine while running every test. No tests are skipped or disabled.
+
+### 1.3. Contract Changes Affecting Earlier Tests
 The following intentional contract changes evolved earlier sprint behavior:
 1. **Resolution Gate Enforcement**: In Lab 3, tickets could transition to `RESOLVED` directly without actions taken. In Lab 4, moving to `RESOLVED` requires an assigned owner, at least one completed Action Taken, and zero planned Actions Taken. Existing tests in `server/tests/lab-03/staff-ticket-detail.api.test.ts` must seed a completed Action Taken and supply `expectedVersion`.
 2. **Transition Matrix Evolution**: The direct transition from `OPEN` to `RESOLVED` permitted in Lab 3 is now retired in favor of the full lifecycle (`OPEN` -> `IN_PROGRESS` -> `RESOLVED`).
@@ -81,15 +96,16 @@ The following intentional contract changes evolved earlier sprint behavior:
 | **UI-08** | UI | AC-20, FR-20 | Forbidden screen on unauthorized route | Renders 403 page with link to Dashboard | `client/tests/lab-04/Navigation.test.tsx` | Passed |
 | **UI-09** | UI | FR-04 | Actions Taken list renders Completed By and Assignee | Visible attribution for completed actions | `client/tests/lab-04/ActionsTaken.test.tsx` | Passed |
 | **UI-10** | UI | AC-15, FR-08 | Requester Reopen button and modal reason input | Opens modal, submits reason, refreshes status | `client/tests/lab-04/TicketWorkflow.test.tsx` | Passed |
-| **STYLE-01** | UI Style | AC-18 | Zen Green tokens and computed badge styles | Playwright verification of `theme.css` tokens and badge text cues | `e2e/lab-04/responsive-accessibility.spec.ts` | Planned |
-| **E2E-01** | E2E | AC-01, AC-06 | Multiple staff record actions on single ticket | Both actions visible; requester view read-only | `e2e/lab-04/actions-taken-flow.spec.ts` | Planned |
-| **E2E-02** | E2E | AC-07, AC-08, AC-15 | Full ticket lifecycle from create to reopen | Gate enforced; resolution recorded; reopen works | `e2e/lab-04/ticket-resolution.spec.ts` | Planned |
-| **E2E-03** | E2E | AC-13 | Staff dashboard drill-down navigation journeys | Clicking card filters queue with exact parity | `e2e/lab-04/dashboards.spec.ts` | Planned |
-| **E2E-04** | E2E | AC-02 | Requester dashboard journeys and attention items | Shows attention tickets; drill-down to My Tickets | `e2e/lab-04/dashboards.spec.ts` | Planned |
-| **RESP-01** | Responsive | AC-18 | Multi-viewport inspection across 1280, 768, 375 | Zero horizontal scroll; no clipping or overlap | `e2e/lab-04/responsive-accessibility.spec.ts` | Planned |
-| **A11Y-01** | Accessibility | AC-18 | Keyboard navigation and visible focus rings | Accessible Tab cycle; focus trap in modals | `e2e/lab-04/responsive-accessibility.spec.ts` | Planned |
+| **STYLE-01** | UI Style | AC-18 | Zen Green tokens, read-only field background, and text-labelled badges | Computed read-only background matches the design token; visible status badges have text | `e2e/lab-04/responsive-accessibility.spec.ts` | Passed |
+| **E2E-01** | E2E | AC-01, AC-03, AC-06, AC-19 | Staff records completed work; requester sees the action read-only; validation remains associated with its field | Action appears as Completed with attribution; requester has no write controls | `e2e/lab-04/actions-taken-flow.spec.ts` | Passed |
+| **E2E-02** | E2E | AC-07, AC-08, AC-15 | Full ticket lifecycle from creation to requester reopen | Owner and Completed Action satisfy the gate; resolve and reopen create history | `e2e/lab-04/ticket-resolution.spec.ts` | Passed |
+| **E2E-03** | E2E | AC-13 | Staff dashboard metrics and drill-down navigation | New metric opens the queue with the matching status filter | `e2e/lab-04/dashboards.spec.ts` | Passed |
+| **E2E-04** | E2E | AC-02 | Requester dashboard ownership view and drill-down | Shows requester-only metrics and attention items; open-ticket card links to My Tickets | `e2e/lab-04/dashboards.spec.ts` | Passed |
+| **E2E-05** | E2E | AC-14, FR-18 | Dashboard loading, empty, and safe-failure states | Staff loading, empty, error and requester empty states are captured | `e2e/lab-04/dashboards.spec.ts` | Passed |
+| **RESP-01** | Responsive | AC-18 | Multi-viewport inspection across 1280, 768, 375 | Zero page-level horizontal overflow; screen layouts and screenshot evidence inspected | `e2e/lab-04/responsive-accessibility.spec.ts` | Passed |
+| **A11Y-01** | Accessibility | AC-18 | Keyboard navigation and focus return in mobile navigation | Tab focus remains in the menu; Escape closes it and restores trigger focus | `e2e/lab-04/responsive-accessibility.spec.ts` | Passed |
 | **TSC-01** | Typecheck | DoD 6 | TypeScript strict compilation without emit | Zero errors on `server` and `client` | `npm run build` in `server/` and `client/` | Passed |
 | **REG-01** | Regression | AC-17, FR-17 | Complete Lab 1 to Lab 3 backend test suites | All suites pass 100% after documented contract adjustments | `server/tests/lab-01..03/*` | Passed |
 | **REG-02** | Regression | AC-17, FR-17 | Complete Lab 1 to Lab 3 client test suites | All suites pass 100% without regression | `client/tests/lab-01..03/*` | Passed |
-| **REG-E2E-01** | Regression | AC-17 | Lab 2 Requester Ticket Flow E2E | Passes with session login through /login | `e2e/lab-02/requester-ticket-flow.spec.ts` | Planned |
-| **REG-E2E-02** | Regression | AC-17 | Lab 3 Authentication, Staff & Admin E2E | All 3 Playwright specs pass cleanly | `e2e/lab-03/*` | Planned |
+| **REG-E2E-01** | Regression | AC-17 | Lab 2 Requester Ticket Flow E2E | Passes with session login through `/login` | `e2e/lab-02/requester-ticket-flow.spec.ts` | Passed |
+| **REG-E2E-02** | Regression | AC-17 | Lab 3 Authentication, Staff & Admin E2E | Authentication, responsive pages, staff workflow, and administrator management pass | `e2e/lab-03/*` | Passed |

@@ -124,30 +124,30 @@ The following checklist must be fully verified and recorded with evidence before
 
 | Check Item | Inspection Criteria | Desktop (1280px) | Tablet (768px) | Mobile (375px) |
 | :--- | :--- | :---: | :---: | :---: |
-| **1. Design Consistency** | Consistent Zen Green tokens, font hierarchy, card borders | Pending | Pending | Pending |
-| **2. Role Navigation** | Links strictly adapt to role; unauthorized paths blocked | Pending | Pending | Pending |
-| **3. Non-Color Badges** | All status, priority, and action badges carry text labels | Pending | Pending | Pending |
-| **4. Read-Only Visuals** | Read-only fields use `--zg-readonly-bg` with standard text | Pending | Pending | Pending |
-| **5. Validation Messages** | Errors render beneath inputs with aria-describedby binding | Pending | Pending | Pending |
-| **6. Keyboard Focus** | Interactive elements show visible focus ring; focus trap active | Pending | Pending | Pending |
-| **7. No Clipping / Overlap** | Text wraps cleanly; modals fit viewport without clipping | Pending | Pending | Pending |
-| **8. Zero Horizontal Scroll** | `scrollWidth <= innerWidth` (zero page horizontal overflow) | Pending | Pending | Pending |
-| **9. Safe Feedback** | Skeletons on loading, clear empty states, retry on failure | Pending | Pending | Pending |
+| **1. Design Consistency** | Zen Green tokens, font hierarchy, and card borders inspected in captured views | Verified | Verified | Verified |
+| **2. Role Navigation** | Role-appropriate links and unauthorized route handling verified by E2E | Verified | Verified | Verified |
+| **3. Non-Color Badges** | Status, priority, and action badges include readable text labels | Verified | Verified | Verified |
+| **4. Read-Only Visuals** | Read-only fields use `--zg-readonly-bg` with standard text | Verified | Verified | Verified |
+| **5. Validation Messages** | Errors render beneath inputs with `aria-describedby` binding | Verified | Verified | Verified |
+| **6. Keyboard Focus** | Mobile menu traps focus, supports Escape, and restores trigger focus | Verified | Verified | Verified |
+| **7. No Clipping / Overlap** | Captured views inspected; horizontally scrollable tables stay inside the page viewport | Verified | Verified | Verified |
+| **8. Zero Horizontal Scroll** | `scrollWidth <= innerWidth` at all supported viewport widths | Verified | Verified | Verified |
+| **9. Safe Feedback** | Skeleton, empty, and safe-failure states captured and inspected | Verified | Verified | Verified |
 
 ---
 
 ## 6. Screenshot Evidence Matrix for Submission Report
 
-Screenshots will be captured and stored under `artifacts/lab-04/screenshots/`:
+Screenshots are captured and stored under `artifacts/lab-04/screenshots/`:
 
 | Part | Screen Target and State | Viewports to Capture | Storage Path |
 | :--- | :--- | :--- | :--- |
-| **Part 5** | Staff Dashboard: Normal Operational State (6 Cards) | 1280px, 768px, 375px | `artifacts/lab-04/screenshots/staff-dashboard/normal/` |
-| **Part 5** | Staff Dashboard: Loading Skeleton State | 1280px | `artifacts/lab-04/screenshots/staff-dashboard/loading.png` |
-| **Part 5** | Staff Dashboard: Empty Queue State | 1280px | `artifacts/lab-04/screenshots/staff-dashboard/empty.png` |
-| **Part 5** | Staff Dashboard: Safe Failure with Retry | 1280px | `artifacts/lab-04/screenshots/staff-dashboard/failure.png` |
-| **Part 6** | Actions Taken: List, Create Form, View/Edit, Completed By | 1280px, 768px, 375px | `artifacts/lab-04/screenshots/actions-taken/` |
-| **Part 7** | Ticket Workflow: Status Dropdown & Resolution Gate | 1280px | `artifacts/lab-04/screenshots/ticket-workflow/` |
-| **Part 8** | Requester Dashboard: Normal, Attention & Empty | 1280px, 768px, 375px | `artifacts/lab-04/screenshots/requester-dashboard/` |
-| **Part 8** | Final Regression: Login, Queue, Detail, Admin Users | 1280px | `artifacts/lab-04/screenshots/regression/` |
-| **Part 9** | Forbidden Access Screen (HTTP 403) | 1280px, 375px | `artifacts/lab-04/screenshots/forbidden/` |
+| **Part 5** | Staff Dashboard: Normal Operational State (6 Cards) | 1280px, 768px, 375px | `artifacts/lab-04/screenshots/staff-dashboard-{1280,768,375}.png` |
+| **Part 5** | Staff Dashboard: Loading, Empty, and Safe Failure States | 1280px | `artifacts/lab-04/screenshots/dashboard-states/staff-dashboard-{loading,empty,failure}-1280.png` |
+| **Part 6** | Actions Taken: List, Create Form, and Requester Read-Only View | 1280px, 768px, 375px | `artifacts/lab-04/screenshots/actions-taken/` |
+| **Part 7** | Ticket Workflow: Resolution Gate and Requester Reopen | 1280px | `artifacts/lab-04/screenshots/ticket-workflow/` |
+| **Part 8** | Requester Dashboard and Ticket Detail | 1280px, 768px, 375px | `artifacts/lab-04/screenshots/requester-dashboard-{1280,768,375}.png` and `requester-ticket-detail-{1280,768,375}.png` |
+| **Part 8** | Final Regression: Login, Ticket Queue, Detail, and Admin Users | 1280px | `artifacts/lab-04/screenshots/regression/` |
+| **Part 9** | Forbidden Access Screen (HTTP 403) | 1280px, 375px | `artifacts/lab-04/screenshots/dashboards/forbidden-access-{1280,375}.png` |
+
+The requester empty dashboard state is available at `artifacts/lab-04/screenshots/dashboard-states/requester-dashboard-empty-1280.png`. Administrator dashboard evidence is available at `artifacts/lab-04/screenshots/dashboards/administrator-dashboard-1280.png`.

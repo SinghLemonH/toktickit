@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 import path from "node:path";
 import fs from "node:fs";
 
-const SCREENSHOTS_DIR = path.resolve(process.cwd(), "docs/lab-03/screenshots");
+const SCREENSHOTS_DIR = path.resolve(process.cwd(), "artifacts/lab-04/screenshots/regression/lab-03");
 fs.mkdirSync(SCREENSHOTS_DIR, { recursive: true });
 
 test.describe.serial("Administrator User Management & Safety Guards (E2E-04)", () => {
