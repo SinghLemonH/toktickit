@@ -21,29 +21,13 @@ import {
   type ActionTaken,
   type StaffUser,
 } from "../api.js";
+import { formatBangkokDateTime } from "../utils/dateUtils.js";
 
 interface ActionsTakenSectionProps {
   ticketId: number;
   isStaff: boolean;
   ticketStatus: string;
   onActionSaved?: () => void;
-}
-
-function formatBangkokDate(isoString: string): string {
-  try {
-    const d = new Date(isoString);
-    if (Number.isNaN(d.getTime())) return isoString;
-    return new Intl.DateTimeFormat("en-GB", {
-      timeZone: "Asia/Bangkok",
-      year: "numeric",
-      month: "short",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(d);
-  } catch {
-    return isoString;
-  }
 }
 
 function toLocalDatetimeString(date: Date): string {
@@ -689,7 +673,7 @@ export default function ActionsTakenSection({
                   <tr key={act.id} data-testid={`action-row-${act.id}`}>
                     {/* Date */}
                     <td>
-                      <div className="fw-semibold text-dark">{formatBangkokDate(act.actionAt)}</div>
+                      <div className="fw-semibold text-dark">{formatBangkokDateTime(act.actionAt)}</div>
                       {act.attachmentNotes && (
                         <small className="text-muted d-block text-truncate" style={{ maxWidth: 160 }}>
                           Ref: {act.attachmentNotes}
