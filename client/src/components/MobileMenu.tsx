@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { X, LayoutList, PlusCircle, UserCircle2, LogOut, Inbox, Users, RefreshCcw } from "lucide-react";
 import type { SelectedRequester } from "../context/RequesterContext.js";
@@ -19,6 +20,45 @@ export default function MobileMenu({
   activePath,
 }: MobileMenuProps) {
   const { user, logout } = useAuth();
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const panel = panelRef.current;
+    const focusable = () => panel?.querySelectorAll<HTMLElement>(
+      'a[href], button:not(:disabled), [tabindex]:not([tabindex="-1"])',
+    );
+    panel?.querySelector<HTMLElement>("button[aria-label='Close menu']")?.focus();
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+      if (event.key !== "Tab") return;
+
+      const items = focusable();
+      if (!items?.length) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      previousFocus?.focus();
+    };
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -39,6 +79,8 @@ export default function MobileMenu({
         className="zg-mobile-menu-panel"
         role="dialog"
         aria-label="Navigation"
+        aria-modal="true"
+        ref={panelRef}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="d-flex justify-content-between align-items-center px-3 py-2 border-bottom">

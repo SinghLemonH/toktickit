@@ -10,16 +10,16 @@ test.describe.serial("Lab 4 Actions Taken UI Screenshots", () => {
     // 1. Login as IT Staff
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto("/login");
-    await page.fill('input[type="email"]', "michael.brown@example.com");
-    await page.fill('input[type="password"]', "Password123!");
+    await page.getByLabel(/email/i).fill("michael.brown@example.com");
+    await page.locator("#password").fill("Password123!");
     await page.click('button[type="submit"]');
 
-    await expect(page).toHaveURL(/\/(staff\/queue|queue)/);
+    await expect(page).toHaveURL(/\/dashboard/);
 
     // 2. Open Ticket 1 details (IN_PROGRESS with completed and planned actions)
     await page.goto("/staff/tickets/1");
-    await expect(page.locator("text=Operational Controls")).toBeVisible();
-    await expect(page.locator("text=Actions Taken")).toBeVisible();
+    await expect(page.getByText("Operational Controls", { exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Actions Taken", exact: true })).toBeVisible();
     await page.waitForTimeout(1000);
 
     // Always scroll to top before taking screenshots
@@ -35,7 +35,7 @@ test.describe.serial("Lab 4 Actions Taken UI Screenshots", () => {
     // 02: Open Inline Add Action Form at 1280px
     const addActionBtn = page.locator('button[data-testid="add-action-button"], button:has-text("Add Action")');
     await addActionBtn.click();
-    await expect(page.locator('div[data-testid="add-action-form"], h6:has-text("New Action Taken")')).toBeVisible();
+    await expect(page.getByTestId("add-action-form")).toBeVisible();
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.waitForTimeout(300);
 
@@ -70,11 +70,11 @@ test.describe.serial("Lab 4 Actions Taken UI Screenshots", () => {
     await page.goto("/login");
 
     // Login as Requester Jennifer Anderson
-    await page.fill('input[type="email"]', "jennifer.anderson@example.com");
-    await page.fill('input[type="password"]', "Password123!");
+    await page.getByLabel(/email/i).fill("jennifer.anderson@example.com");
+    await page.locator("#password").fill("Password123!");
     await page.click('button[type="submit"]');
 
-    await expect(page).toHaveURL(/\/tickets/);
+    await expect(page).toHaveURL(/\/dashboard/);
 
     // Navigate to ticket 7
     await page.goto("/tickets/7");

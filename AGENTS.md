@@ -19,8 +19,8 @@ When an AI agent starts or resumes work in a new conversation, **immediately rea
 | **#48** | **Ticket Workflow, Resolution Gate, Stale-Update Guard & History** | `feature/48-ticket-workflow` | **Done** | Merged into `lab4-staging` via PR #55. |
 | **#49** | **Role-Based Dashboards Backend API & Metric Verification** | `feature/49-dashboard-api` | **Done** | Merged into `lab4-staging` via PR #56. |
 | **#50** | **Actions Taken UI on Ticket Detail** | `feature/50-actions-taken-ui` | **Done** | Merged into `lab4-staging` via PR #57. |
-| **#51** | **Dashboards UI, Navigation & Lab 2 Remnants Cleanup** | `feature/51-dashboards-ui-and-nav` | **In Progress** | Role-based Dashboard page, Zen Green metric cards, role-aware navigation, clean Lab 2 remnants |
-| **#52** | **Final Hardening, Multi-Viewport E2E & Visual Artifacts** | `feature/52-final-hardening` | **Todo** | Playwright E2E suites, multi-viewport screenshots (1280, 768, 375), accessibility & visual checklist |
+| **#51** | **Dashboards UI, Navigation & Lab 2 Remnants Cleanup** | `feature/51-dashboards-ui-and-nav` | **Done** | Merged into `lab4-staging` via PR #58. |
+| **#52** | **Final Hardening, Multi-Viewport E2E & Visual Artifacts** | `feature/52-final-hardening` | **In Progress** | Playwright E2E suites, multi-viewport screenshots (1280, 768, 375), accessibility & visual checklist |
 
 ### Resume Checklist for Any New Session:
 1. Run `git branch --show-current` and `git status` to verify current branch and uncommitted work.

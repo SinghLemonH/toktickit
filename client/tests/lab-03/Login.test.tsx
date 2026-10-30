@@ -70,6 +70,34 @@ describe("Login Component (UI-01, AC-01)", () => {
     });
   });
 
+  it("sends authenticated users to the role-aware dashboard", async () => {
+    const userProfile = {
+      id: 42,
+      email: "requester@example.com",
+      name: "Dashboard Requester",
+      role: "REQUESTER",
+      mustChangePassword: false,
+    };
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/api/auth/login")) {
+        return new Response(JSON.stringify({ user: userProfile }), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+      if (url.includes("/api/auth/me")) {
+        return new Response(JSON.stringify({ user: userProfile }), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+      return new Response("{}", { status: 404 });
+    });
+
+    renderLogin();
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText("Email Address"), userProfile.email);
+    await user.type(screen.getByLabelText("Password"), "Password123!");
+    await user.click(screen.getByRole("button", { name: "Sign In" }));
+
+    await waitFor(() => expect(window.location.pathname).toBe("/dashboard"));
+  });
+
   it("disables the submit button while login request is in flight", async () => {
     let resolveLogin: (value: Response) => void;
     const loginPromise = new Promise<Response>((resolve) => {

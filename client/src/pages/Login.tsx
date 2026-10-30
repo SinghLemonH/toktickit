@@ -54,13 +54,9 @@ export default function Login() {
         navigate("/change-password");
         return;
       }
-      if (user.role === "REQUESTER") {
-        navigate("/tickets");
-      } else {
-        navigate("/staff/queue");
-      }
+      navigate("/dashboard");
     } else {
-      navigate("/tickets");
+      navigate("/dashboard");
     }
   }
 
