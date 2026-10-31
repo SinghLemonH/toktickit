@@ -8,7 +8,7 @@ Testing in Sprint 4 adheres strictly to Test-Driven Development (TDD) and Spec-D
 - **Unit Tests**: Pure business logic verification (status transition matrix by role including PENDING, resolution gate validator, action input parser, dashboard window helpers) located under `server/tests/lab-04/*.unit.test.ts` to match `server/vitest.config.ts`.
 - **API and Integration Tests**: Supertest executing against the Express backend and PostgreSQL database with disabled parallelism (`fileParallelism: false`) to ensure deterministic test execution.
 - **UI Component Tests**: Vitest with React Testing Library simulating component interactions, mock API responses, validation error rendering, and role restrictions.
-- **UI Style Tests**: Playwright and static token assertions validating adherence to Zen Green CSS tokens in `theme.css`, readable badge labels, and accessible contrast ratios.
+- **UI Style Tests**: Playwright checks validating the read-only field background token, visible text labels on badges, keyboard focus behavior, and responsive page overflow.
 - **End-to-End Tests**: Playwright executing complete user journeys in real browser contexts across desktop, tablet, and mobile viewports.
 - **Performance Smoke Tests**: Validating that aggregate dashboard queries execute in under 500ms on seeded data.
 - **Static Type Check**: Running `tsc --noEmit` on both server and client to guarantee zero TypeScript compiler errors.

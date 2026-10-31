@@ -16,8 +16,8 @@
 | **Issue #31 (Auth & Password Change)** | `feature/31-auth-and-password-change` | PR #39 | `@WATHITx` | **Approved** | 2026-09-18 |
 | **Issue #32 (Requester & Comments)** | `feature/32-requester-regression-comments` | PR #40 | `@WATHITx` | **Approved** | 2026-09-18 |
 | **Issue #33 (Staff Queue & Detail)** | `feature/33-staff-queue-and-ticket-operations` | PR #41 | `@WATHITx` | **Approved** | 2026-09-19 |
-| **Issue #34 (Admin User Management)**| `feature/34-admin-user-management` | TBD | Peer Reviewer | In Progress | - |
-| **Issue #35 (E2E & Release QA)** | `feature/35-e2e-artifacts-release` | TBD | Peer Reviewer | Pending | - |
+| **Issue #34 (Admin User Management)**| `feature/34-admin-user-management` | [PR #42](https://github.com/SinghLemonH/toktickit/pull/42) | `@WATHITx` | **Approved and merged** | 2026-09-19 |
+| **Issue #35 (E2E & Release QA)** | `feature/35-e2e-artifacts-release` | [PR #43](https://github.com/SinghLemonH/toktickit/pull/43) | `@WATHITx` | **Approved and merged** | 2026-09-19 |
 
 ---
 
