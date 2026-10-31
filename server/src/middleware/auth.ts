@@ -16,6 +16,9 @@ export interface RequestWithUser extends Request {
   user?: AuthenticatedUser;
 }
 
+export type AuthedRequest = RequestWithUser;
+export type AuthenticatedRequest = RequestWithUser;
+
 export async function authenticate(
   req: RequestWithUser,
   _res: Response,

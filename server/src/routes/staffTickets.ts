@@ -7,6 +7,8 @@ import {
   requireRole,
   type AuthenticatedRequest,
 } from "../middleware/auth.js";
+import { isTransitionAllowed, getAllowedTransitions } from "../domain/workflow.js";
+import { evaluateResolutionGate } from "../domain/resolutionGate.js";
 
 export const staffTicketsRouter = Router();
 
@@ -20,18 +22,6 @@ const VALID_SORT_FIELDS = [
   "currentStatus",
 ];
 
-// Permitted status transition matrix adhering to BR-15 & legacy PENDING continuity
-const ALLOWED_TRANSITIONS: Record<string, TicketStatus[]> = {
-  NEW: ["OPEN", "CANCELLED"],
-  OPEN: ["IN_PROGRESS", "WAITING_FOR_REQUESTER", "RESOLVED", "CANCELLED"],
-  IN_PROGRESS: ["WAITING_FOR_REQUESTER", "RESOLVED", "CANCELLED"],
-  WAITING_FOR_REQUESTER: ["IN_PROGRESS", "RESOLVED", "CANCELLED"],
-  RESOLVED: ["CLOSED", "REOPENED"],
-  CLOSED: ["REOPENED"],
-  REOPENED: ["IN_PROGRESS", "RESOLVED", "CANCELLED"],
-  CANCELLED: [],
-  PENDING: ["IN_PROGRESS", "RESOLVED", "CANCELLED"],
-};
 
 // GET /api/staff/tickets
 // Shared Ticket Queue with search, multi-faceted filtering, sorting, and pagination
@@ -51,10 +41,11 @@ staffTicketsRouter.get(
           ? req.query.q.trim()
           : "";
 
-      const status = req.query.status as TicketStatus | undefined;
+      const rawStatus = (req.query.currentStatus || req.query.status) as string | undefined;
+      const statusGroup = req.query.statusGroup as string | undefined;
       const categoryId = req.query.categoryId ? Number(req.query.categoryId) : undefined;
       const requestedPriority = req.query.requestedPriority as Priority | undefined;
-      const itPriority = req.query.itPriority as Priority | undefined;
+      const itPriorityRaw = req.query.itPriority as string | undefined;
       const assignedTo = req.query.assignedTo as string | undefined;
 
       const page = Math.max(1, Number(req.query.page) || 1);
@@ -68,8 +59,25 @@ staffTicketsRouter.get(
 
       const where: Prisma.TicketWhereInput = {};
 
-      if (status) {
-        where.currentStatus = status;
+      const ACTIVE_STATUSES: TicketStatus[] = [
+        "NEW",
+        "OPEN",
+        "IN_PROGRESS",
+        "WAITING_FOR_REQUESTER",
+        "REOPENED",
+        "PENDING",
+      ];
+
+      if (rawStatus && statusGroup === "active") {
+        if (ACTIVE_STATUSES.includes(rawStatus as TicketStatus)) {
+          where.currentStatus = rawStatus as TicketStatus;
+        } else {
+          where.currentStatus = { in: [] };
+        }
+      } else if (rawStatus) {
+        where.currentStatus = rawStatus as TicketStatus;
+      } else if (statusGroup === "active") {
+        where.currentStatus = { in: ACTIVE_STATUSES };
       }
 
       if (categoryId && !Number.isNaN(categoryId)) {
@@ -80,8 +88,10 @@ staffTicketsRouter.get(
         where.requestedPriority = requestedPriority;
       }
 
-      if (itPriority && ["LOW", "MEDIUM", "HIGH"].includes(itPriority)) {
-        where.itPriority = itPriority;
+      if (itPriorityRaw === "none") {
+        where.itPriority = null;
+      } else if (itPriorityRaw && ["LOW", "MEDIUM", "HIGH"].includes(itPriorityRaw)) {
+        where.itPriority = itPriorityRaw as Priority;
       }
 
       if (assignedTo) {
@@ -121,6 +131,8 @@ staffTicketsRouter.get(
       return res.status(200).json({
         tickets,
         data: tickets,
+        total,
+        totalItems: total,
         pagination: {
           totalItems: total,
           total,
@@ -189,7 +201,13 @@ staffTicketsRouter.patch(
       });
     }
 
-    const { assignedToId } = req.body;
+    const { assignedToId, expectedVersion } = req.body;
+
+    if (expectedVersion === undefined || expectedVersion === null || !Number.isInteger(expectedVersion)) {
+      return res.status(400).json({
+        error: { code: "VALIDATION_ERROR", message: "expectedVersion must be an integer." },
+      });
+    }
 
     try {
       const prisma = getPrisma();
@@ -201,6 +219,20 @@ staffTicketsRouter.patch(
       if (!existingTicket) {
         return res.status(404).json({
           error: { code: "NOT_FOUND", message: "Ticket not found." },
+        });
+      }
+
+      // BR-18: Guard against bypassing owner requirements
+      if (
+        existingTicket.currentStatus === "RESOLVED" ||
+        existingTicket.currentStatus === "CLOSED" ||
+        existingTicket.currentStatus === "CANCELLED"
+      ) {
+        return res.status(400).json({
+          error: {
+            code: "TICKET_LOCKED",
+            message: `Cannot reassign owner on ticket in ${existingTicket.currentStatus} status.`,
+          },
         });
       }
 
@@ -224,19 +256,45 @@ staffTicketsRouter.patch(
         }
       }
 
-      const updatedTicket = await prisma.ticket.update({
-        where: { id: ticketId },
-        data: {
-          assignedToId: assignedToId === null || assignedToId === undefined ? null : Number(assignedToId),
-        },
-        include: {
-          category: { select: { id: true, name: true } },
-          requester: { select: { id: true, name: true, email: true } },
-          assignedTo: { select: { id: true, name: true, email: true, role: true } },
-        },
+      const targetAssigneeId =
+        assignedToId === null || assignedToId === undefined ? null : Number(assignedToId);
+
+      const result = await prisma.$transaction(async (tx) => {
+        const updateResult = await tx.ticket.updateMany({
+          where: {
+            id: ticketId,
+            version: expectedVersion,
+          },
+          data: {
+            assignedToId: targetAssigneeId,
+            version: { increment: 1 },
+          },
+        });
+
+        if (updateResult.count === 0) {
+          return null;
+        }
+
+        return tx.ticket.findUnique({
+          where: { id: ticketId },
+          include: {
+            category: { select: { id: true, name: true } },
+            requester: { select: { id: true, name: true, email: true } },
+            assignedTo: { select: { id: true, name: true, email: true, role: true } },
+          },
+        });
       });
 
-      return res.status(200).json(updatedTicket);
+      if (!result) {
+        return res.status(409).json({
+          error: {
+            code: "STALE_UPDATE",
+            message: "Ticket was modified by another operation. Refresh and retry.",
+          },
+        });
+      }
+
+      return res.status(200).json(result);
     } catch (err) {
       console.error("Error assigning ticket:", err);
       return res.status(500).json({
@@ -305,7 +363,7 @@ staffTicketsRouter.patch(
 );
 
 // PATCH /api/staff/tickets/:id/status
-// Updates ticket status according to permitted state transitions (BR-15)
+// Updates ticket status according to permitted state transitions and Resolution Gate (BR-11, BR-12, BR-16, BR-17)
 staffTicketsRouter.patch(
   "/api/staff/tickets/:id/status",
   requireAuth,
@@ -319,10 +377,16 @@ staffTicketsRouter.patch(
       });
     }
 
-    const { status: nextStatus } = req.body;
+    const { status: nextStatus, expectedVersion } = req.body;
     if (!nextStatus || typeof nextStatus !== "string") {
       return res.status(400).json({
         error: { code: "VALIDATION_ERROR", message: "Valid status string is required." },
+      });
+    }
+
+    if (expectedVersion === undefined || expectedVersion === null || !Number.isInteger(expectedVersion)) {
+      return res.status(400).json({
+        error: { code: "VALIDATION_ERROR", message: "expectedVersion must be an integer." },
       });
     }
 
@@ -346,9 +410,9 @@ staffTicketsRouter.patch(
         return res.status(200).json(existingTicket);
       }
 
-      // Check transition validity
-      const allowed = ALLOWED_TRANSITIONS[current] || [];
-      if (!allowed.includes(nextStatus as TicketStatus)) {
+      // Check transition validity using domain matrix
+      const callerRole = req.user!.role;
+      if (!isTransitionAllowed(current, nextStatus as TicketStatus, callerRole, false)) {
         return res.status(400).json({
           error: {
             code: "INVALID_STATUS_TRANSITION",
@@ -357,17 +421,80 @@ staffTicketsRouter.patch(
         });
       }
 
-      const updatedTicket = await prisma.ticket.update({
-        where: { id: ticketId },
-        data: { currentStatus: nextStatus as TicketStatus },
-        include: {
-          category: { select: { id: true, name: true } },
-          requester: { select: { id: true, name: true, email: true } },
-          assignedTo: { select: { id: true, name: true, email: true, role: true } },
-        },
+      // Resolution Gate Evaluation (BR-11) when transitioning to RESOLVED
+      if (nextStatus === "RESOLVED") {
+        const actions = await prisma.actionTaken.findMany({
+          where: { ticketId },
+          select: { status: true },
+        });
+
+        const gateResult = evaluateResolutionGate(
+          { assignedToId: existingTicket.assignedToId },
+          actions
+        );
+
+        if (!gateResult.ok) {
+          return res.status(400).json({
+            error: {
+              code: "RESOLUTION_GATE_NOT_MET",
+              message: "Resolution gate criteria not satisfied",
+              reasons: gateResult.reasons,
+            },
+          });
+        }
+      }
+
+      const result = await prisma.$transaction(async (tx) => {
+        const updateResult = await tx.ticket.updateMany({
+          where: {
+            id: ticketId,
+            version: expectedVersion,
+          },
+          data: {
+            currentStatus: nextStatus as TicketStatus,
+            version: { increment: 1 },
+          },
+        });
+
+        if (updateResult.count === 0) {
+          return null;
+        }
+
+        await tx.ticketStatusHistory.create({
+          data: {
+            ticketId,
+            fromStatus: current,
+            toStatus: nextStatus as TicketStatus,
+            changedById: req.user!.id,
+            reason: null,
+          },
+        });
+
+        return tx.ticket.findUnique({
+          where: { id: ticketId },
+          include: {
+            category: { select: { id: true, name: true } },
+            requester: { select: { id: true, name: true, email: true } },
+            assignedTo: { select: { id: true, name: true, email: true, role: true } },
+          },
+        });
       });
 
-      return res.status(200).json(updatedTicket);
+      if (!result) {
+        return res.status(409).json({
+          error: {
+            code: "STALE_UPDATE",
+            message: "Ticket was modified by another operation. Refresh and retry.",
+          },
+        });
+      }
+
+      const allowedTransitions = getAllowedTransitions(result.currentStatus, callerRole, false);
+
+      return res.status(200).json({
+        ...result,
+        allowedTransitions,
+      });
     } catch (err) {
       console.error("Error updating ticket status:", err);
       return res.status(500).json({

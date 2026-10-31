@@ -1,91 +1,83 @@
-# TokTickIT: IT Service Desk (Lab 1: Full-Stack Hello World + Lab 2: Requester Ticketing MVP)
+# TokTickIT: IT Service Desk
 
-CPE 334 - Sprint 1 & 2. A vertical slice proving React (Vite) → Express API → Prisma ORM →
-PostgreSQL all work together, extended in Lab 2 with the Requester-facing ticketing experience.
+CPE 334 Software Engineering project. TokTickIT is a full-stack IT support ticketing system built across Labs 1 to 4 with React, Express, Prisma, and PostgreSQL.
 
-## Prerequisites
-- Node.js 18+ and npm
-- PostgreSQL 14+ running locally
+## Sprint Scope
+
+- **Lab 1**: Health checks and category management.
+- **Lab 2**: Ticket creation, requester ticket lists, attachments, and the Zen Green theme.
+- **Lab 3**: Cookie-based authentication, role-based access control, staff ticket operations, administrator user management, public comments, and internal notes.
+- **Lab 4**: Actions Taken, ticket workflow and resolution gates, role-based dashboards, responsive navigation, and final regression coverage.
+
+Sprint 4 is integrated into `lab4-staging`. The final release pull request from `lab4-staging` to `main` is tracked separately from feature work.
+
+## Requirements
+
+- Node.js 18 or newer and npm
+- PostgreSQL 14 or newer
 - Git
 
-## 1. Clone the repository
+## Local Setup
+
+Clone the repository and install dependencies for the root Playwright runner, server, and client:
+
 ```bash
-git clone https://github.com/<your-username>/toktickit.git
+git clone https://github.com/SinghLemonH/toktickit.git
 cd toktickit
+npm install
+npm --prefix server install
+npm --prefix client install
 ```
 
-## 2. Set up the database
-Create a PostgreSQL user and database (adjust name/password if needed):
+Create the database and local server configuration:
+
 ```sql
 CREATE USER toktickit WITH PASSWORD 'toktickit';
 CREATE DATABASE toktickit OWNER toktickit;
 ```
 
-## 3. Set up the backend
+Copy `server/.env.example` to `server/.env` and update `DATABASE_URL` if your PostgreSQL credentials differ. In PowerShell, use `Copy-Item server/.env.example server/.env`.
+
+Generate the Prisma client, apply committed migrations, and seed development data:
+
 ```bash
 cd server
-npm install
-copy .env.example .env    # on macOS/Linux: cp .env.example .env
-```
-Edit `.env` and confirm `DATABASE_URL` matches your PostgreSQL credentials.
-
-Generate the Prisma client and sync the schema:
-```bash
 npx prisma generate
-npx prisma db push
-```
-
-**Lab 2 addition** : Lab 2 introduced new tables (DevRequester, RelatedSystem, Ticket, Attachment,
-TicketNumberCounter) plus an `isActive` column on `Category`, applied via a proper migration instead
-of `db push`:
-```bash
-npx prisma migrate dev --name lab2_ticketing_models
-```
-
-Seed the database (Lab 1 categories + Lab 2 related systems and development requesters, all
-idempotent - safe to re-run):
-```bash
+npx prisma migrate dev
 npm run seed
 ```
 
-Run the backend:
-```bash
-npm run dev
-```
-The API runs at http://localhost:3000
+The server listens on `http://localhost:3000`. Start it from `server/` with `npm run dev`. Start the frontend in another terminal from `client/` with `npm run dev`; Vite listens on `http://localhost:5173`.
 
-Run backend tests:
-```bash
-npm test
-```
+## Verification
 
-## 4. Set up the frontend
-In a new terminal:
-```bash
-cd client
-npm install
-npm run dev
-```
-The frontend runs at http://localhost:5173
+Run backend and frontend test suites from the repository root:
 
-Run frontend tests:
 ```bash
 npm test
 ```
 
-## 5. End-to-end tests (Lab 2)
-Playwright is configured at the repo root. Once the app screens exist (Lab 2 Issues #14–#17), run:
+Run Playwright end-to-end tests from the repository root:
+
 ```bash
-npx playwright test
+npm run test:e2e
 ```
-from the repository root, with both the backend and frontend dev servers running.
 
-## Tech stack
-React + TypeScript + Vite + Bootstrap 5 (Zen Green theme via `client/src/theme.css`) + React Router ·
-Node.js + Express + TypeScript · PostgreSQL + Prisma · Multer (file uploads) · Vitest + Supertest ·
-Playwright (E2E)
+Playwright starts the configured server and client development processes when they are not already running. Run production builds with `npm --prefix server run build` and `npm --prefix client run build`.
 
-## Project conventions
-See `AGENTS.md` (repo root) for git workflow, coding-agent boundaries, and full command reference.
-See `docs/lab-02/specification.md` for the Lab 2 engineering contract (scope, business rules,
-acceptance criteria).
+## Engineering Contracts and Evidence
+
+- [Lab 2 specification](docs/lab-02/specification.md) and [Lab 2 test plan](docs/lab-02/tests.md)
+- [Lab 3 specification](docs/lab-03/specification.md) and [Lab 3 test plan](docs/lab-03/tests.md)
+- [Lab 4 specification](docs/lab-04/specification.md)
+- [Lab 4 API specification](docs/lab-04/api-spec.md)
+- [Lab 4 UI specification and screenshot evidence matrix](docs/lab-04/ui-spec.md)
+- [Lab 4 test plan and traceability matrix](docs/lab-04/tests.md)
+- [Lab 4 peer review log](docs/lab-04/reviewer.md)
+- Lab 4 screenshots: `artifacts/lab-04/screenshots/`
+
+See [AGENTS.md](AGENTS.md) for branch conventions, sprint status, security boundaries, and the complete engineering contract.
+
+## Technology
+
+React, TypeScript, Vite, Bootstrap 5, Zen Green CSS, React Router, Node.js, Express, Prisma, PostgreSQL, cookie-based sessions, Vitest, React Testing Library, Supertest, and Playwright.

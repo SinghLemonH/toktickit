@@ -12,18 +12,24 @@ import {
   MessageSquare,
   Send,
   Check,
+  RotateCcw,
 } from "lucide-react";
 import {
   getTicketDetail,
   getPublicComments,
   postPublicComment,
   indicateProblemResolved,
+  reopenTicket,
+  ApiError,
   type TicketDetail as TicketDetailType,
   type PublicComment,
 } from "../api.js";
 import { useRequester } from "../context/RequesterContext.js";
 import { useAuth } from "../context/AuthContext.js";
 import AttachmentSection from "../components/AttachmentSection.js";
+import ActionsTakenSection from "../components/ActionsTakenSection.js";
+import Modal from "../components/Modal.js";
+import { formatBangkokDateTime } from "../utils/dateUtils.js";
 
 function PriorityBadge({ value }: { value: string | null }) {
   if (!value) return <span className="text-muted small">None</span>;
@@ -123,6 +129,12 @@ export default function TicketDetail() {
   const [showConfirmResolve, setShowConfirmResolve] = useState(false);
   const [resolveError, setResolveError] = useState<string | null>(null);
 
+  // Reopen Ticket State (UI-10, AC-15)
+  const [showReopenModal, setShowReopenModal] = useState(false);
+  const [reopenReason, setReopenReason] = useState("");
+  const [isReopening, setIsReopening] = useState(false);
+  const [reopenError, setReopenError] = useState<string | null>(null);
+
   function fetchTicket() {
     if (!effectiveRequesterId || !id) return;
     setLoadState("loading");
@@ -191,6 +203,31 @@ export default function TicketDetail() {
     }
   }
 
+  async function handleReopenTicket() {
+    if (!ticket) return;
+    setIsReopening(true);
+    setReopenError(null);
+
+    try {
+      await reopenTicket(ticket.id, {
+        reason: reopenReason.trim() || undefined,
+        expectedVersion: ticket.version,
+      });
+      setShowReopenModal(false);
+      setReopenReason("");
+      fetchTicket();
+    } catch (err: unknown) {
+      if (err instanceof ApiError && err.code === "STALE_UPDATE") {
+        setReopenError("Ticket was updated by another process. Please close and refresh.");
+      } else {
+        const msg = err instanceof Error ? err.message : "Failed to reopen ticket";
+        setReopenError(msg);
+      }
+    } finally {
+      setIsReopening(false);
+    }
+  }
+
   if (loadState === "loading") {
     return (
       <div className="text-center py-5">
@@ -253,16 +290,17 @@ export default function TicketDetail() {
         <div className="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
           <h1 className="h4 mb-0">Ticket Details: {ticket.ticketNumber}</h1>
 
-          {/* Problem Appears Resolved Indicator / Action */}
-          <div>
-            {ticket.isProblemResolvedIndicated ? (
+          {/* Problem Appears Resolved Indicator / Action & Reopen Action */}
+          <div className="d-flex align-items-center gap-2">
+            {ticket.isProblemResolvedIndicated && !isClosedOrResolved && (
               <span
                 className="badge bg-success d-inline-flex align-items-center gap-1 px-3 py-2"
                 style={{ fontSize: "0.85rem" }}
               >
                 <Check size={14} aria-hidden="true" /> Problem appears resolved
               </span>
-            ) : !isClosedOrResolved ? (
+            )}
+            {!isClosedOrResolved && !ticket.isProblemResolvedIndicated && (
               <button
                 type="button"
                 className="btn btn-outline-success btn-sm d-inline-flex align-items-center gap-1"
@@ -270,9 +308,80 @@ export default function TicketDetail() {
               >
                 <CheckCircle2 size={14} aria-hidden="true" /> Problem Appears Resolved
               </button>
-            ) : null}
+            )}
+            {/* Reopen Ticket Button (UI-10, AC-15) */}
+            {isClosedOrResolved && (
+              <button
+                type="button"
+                className="btn btn-outline-danger btn-sm d-inline-flex align-items-center gap-1"
+                onClick={() => setShowReopenModal(true)}
+              >
+                <RotateCcw size={14} aria-hidden="true" /> Reopen Ticket
+              </button>
+            )}
           </div>
         </div>
+
+        {/* Reopen Confirmation Modal (UI-10, AC-15) */}
+        <Modal
+          isOpen={showReopenModal}
+          onClose={() => {
+            setShowReopenModal(false);
+            setReopenError(null);
+          }}
+          title={
+            <>
+              <RotateCcw className="text-danger" size={20} /> Reopen Ticket
+            </>
+          }
+          titleId="reopen-modal-title"
+          footer={
+            <>
+              <button
+                type="button"
+                className="btn btn-outline-secondary btn-sm"
+                disabled={isReopening}
+                onClick={() => {
+                  setShowReopenModal(false);
+                  setReopenError(null);
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger btn-sm d-flex align-items-center gap-1"
+                disabled={isReopening}
+                onClick={handleReopenTicket}
+              >
+                {isReopening ? "Reopening..." : "Confirm Reopen"}
+              </button>
+            </>
+          }
+        >
+          <div>
+            <p className="small text-muted mb-3">
+              If this issue is not fully resolved or has reoccurred, you can reopen it. IT Staff will be notified to review the ticket again.
+            </p>
+            {reopenError && (
+              <div className="alert alert-danger py-2 small mb-3">{reopenError}</div>
+            )}
+            <div className="mb-2">
+              <label htmlFor="reopen-reason-input" className="form-label small fw-semibold">
+                Reason for reopening (optional)
+              </label>
+              <textarea
+                id="reopen-reason-input"
+                className="form-control"
+                rows={3}
+                placeholder="Explain why this ticket needs further work..."
+                value={reopenReason}
+                onChange={(e) => setReopenReason(e.target.value)}
+                maxLength={1000}
+              />
+            </div>
+          </div>
+        </Modal>
 
         {/* Resolve Confirmation Modal / Dialog */}
         {showConfirmResolve && (
@@ -325,7 +434,7 @@ export default function TicketDetail() {
             <label className="form-label fw-semibold small">Ticket Date</label>
             <input
               className="form-control form-control-readonly"
-              value={new Date(ticket.createdAt).toLocaleString()}
+              value={formatBangkokDateTime(ticket.createdAt)}
               readOnly
               aria-readonly="true"
             />
@@ -413,6 +522,15 @@ export default function TicketDetail() {
         onAttachmentsUpdated={fetchTicket}
       />
 
+      {/* Actions Taken Section - Requester Read-Only (Lab 4) */}
+      <div className="mt-4">
+        <ActionsTakenSection
+          ticketId={ticket.id}
+          isStaff={false}
+          ticketStatus={ticket.currentStatus}
+        />
+      </div>
+
       {/* Public Comments Section */}
       <div className="card p-4 mt-4">
         <div className="d-flex justify-content-between align-items-center mb-3">
@@ -448,7 +566,7 @@ export default function TicketDetail() {
                     <CommentRoleBadge role={c.author.role} />
                   </div>
                   <span className="text-muted small" style={{ fontSize: "0.75rem" }}>
-                    {new Date(c.createdAt).toLocaleString()}
+                    {formatBangkokDateTime(c.createdAt)}
                   </span>
                 </div>
                 <div

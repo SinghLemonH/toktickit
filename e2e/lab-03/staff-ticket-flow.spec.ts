@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 import path from "node:path";
 import fs from "node:fs";
 
-const SCREENSHOTS_DIR = path.resolve(process.cwd(), "docs/lab-03/screenshots");
+const SCREENSHOTS_DIR = path.resolve(process.cwd(), "artifacts/lab-04/screenshots/regression/lab-03");
 fs.mkdirSync(SCREENSHOTS_DIR, { recursive: true });
 
 test.describe.serial("IT Staff Ticket Queue & Operational Details (E2E-03)", () => {
@@ -13,12 +13,13 @@ test.describe.serial("IT Staff Ticket Queue & Operational Details (E2E-03)", () 
     await page.fill('input[type="password"]', "Password123!");
     await page.click('button[type="submit"]');
 
-    // 2. Arrive at Staff Ticket Queue
-    await expect(page).toHaveURL(/\/(staff\/queue|queue)/);
+    // 2. Arrive at the role dashboard, then open the full queue.
+    await expect(page).toHaveURL(/\/dashboard/);
     await expect(page.locator(".navbar")).toContainText("Michael Brown");
     await expect(page.locator(".navbar")).toContainText("IT Staff");
     // Verify non-admins do NOT see User Management
     await expect(page.locator(".navbar")).not.toContainText("User Management");
+    await page.goto("/staff/queue");
     await page.screenshot({ path: path.join(SCREENSHOTS_DIR, "03-staff-queue-page.png") });
 
     // 3. Search and filtering

@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { RequesterProvider } from "./context/RequesterContext.js";
 import { AuthProvider } from "./context/AuthContext.js";
-import RequesterSelection from "./pages/RequesterSelection.js";
 import Login from "./pages/Login.js";
 import ChangePassword from "./pages/ChangePassword.js";
 import MyTickets from "./pages/MyTickets.js";
@@ -10,6 +9,7 @@ import TicketDetail from "./pages/TicketDetail.js";
 import StaffTicketQueue from "./pages/StaffTicketQueue.js";
 import StaffTicketDetail from "./pages/StaffTicketDetail.js";
 import UserManagement from "./pages/UserManagement.js";
+import RoleDashboard from "./pages/RoleDashboard.js";
 import RouteGuard from "./components/RouteGuard.js";
 import AppShell from "./components/AppShell.js";
 import App from "./App.js";
@@ -29,6 +29,20 @@ export default function AppRouter() {
 
             {/* Lab 1 Health Check Demo */}
             <Route path="/system-status" element={<App />} />
+
+            {/* Lab 4 Dashboard Routes - Primary Landing Page */}
+            <Route
+              path="/dashboard"
+              element={
+                <RouteGuard>
+                  <AppShell>
+                    <RoleDashboard />
+                  </AppShell>
+                </RouteGuard>
+              }
+            />
+
+            <Route path="/staff/dashboard" element={<Navigate to="/dashboard" replace />} />
 
             {/* Requester Routes */}
             <Route
@@ -99,8 +113,8 @@ export default function AppRouter() {
               }
             />
 
-            <Route path="/" element={<Navigate to="/tickets" replace />} />
-            <Route path="*" element={<Navigate to="/tickets" replace />} />
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </RequesterProvider>
       </AuthProvider>

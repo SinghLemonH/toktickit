@@ -137,6 +137,30 @@ export class CreateTicketValidationError extends Error {
   }
 }
 
+export class ApiError extends Error {
+  code?: string;
+  status?: number;
+  fields?: Record<string, string>;
+  reasons?: string[];
+
+  constructor(
+    message: string,
+    options?: {
+      code?: string;
+      status?: number;
+      fields?: Record<string, string>;
+      reasons?: string[];
+    }
+  ) {
+    super(message);
+    this.name = "ApiError";
+    this.code = options?.code;
+    this.status = options?.status;
+    this.fields = options?.fields;
+    this.reasons = options?.reasons;
+  }
+}
+
 export async function createTicket(
   requesterId: number,
   input: CreateTicketInput
@@ -193,14 +217,17 @@ export interface TicketDetail {
   requestedPriority: "LOW" | "MEDIUM" | "HIGH";
   itPriority: string | null;
   currentStatus: string;
-  isProblemResolvedIndicated: boolean;
+  isProblemResolvedIndicated?: boolean;
   assignedToId?: number | null;
   assignedTo?: { id: number; name: string; email?: string; role?: string } | null;
+  version?: number;
+  allowedTransitions?: string[];
+  resolutionGate?: { ok: boolean; reasons: string[] };
   attachments: AttachmentMetadata[];
 }
 
 export async function getTicketDetail(
-  requesterId: number,
+  requesterId: number | undefined,
   ticketId: number
 ): Promise<TicketDetail> {
   const res = await fetch(`${API_URL}/api/tickets/${ticketId}`, {
@@ -433,17 +460,26 @@ export async function getStaffUsers(): Promise<StaffUser[]> {
 
 export async function assignStaffTicket(
   ticketId: number,
-  assignedToId: number | null
+  assignedToId: number | null,
+  expectedVersion?: number
 ): Promise<TicketDetail> {
+  const body: { assignedToId: number | null; expectedVersion?: number } = { assignedToId };
+  if (expectedVersion !== undefined) {
+    body.expectedVersion = expectedVersion;
+  }
   const res = await fetch(`${API_URL}/api/staff/tickets/${ticketId}/assign`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
-    body: JSON.stringify({ assignedToId }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
-    throw new Error(data.error?.message || "Failed to assign ticket");
+    throw new ApiError(data.error?.message || "Failed to assign ticket", {
+      code: data.error?.code,
+      status: res.status,
+      fields: data.error?.fields,
+    });
   }
   return res.json();
 }
@@ -460,24 +496,37 @@ export async function updateTicketItPriority(
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
-    throw new Error(data.error?.message || "Failed to update IT Priority");
+    throw new ApiError(data.error?.message || "Failed to update IT Priority", {
+      code: data.error?.code,
+      status: res.status,
+    });
   }
   return res.json();
 }
 
 export async function updateTicketStatus(
   ticketId: number,
-  status: string
+  status: string,
+  expectedVersion?: number
 ): Promise<TicketDetail> {
+  const body: { status: string; expectedVersion?: number } = { status };
+  if (expectedVersion !== undefined) {
+    body.expectedVersion = expectedVersion;
+  }
   const res = await fetch(`${API_URL}/api/staff/tickets/${ticketId}/status`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
-    body: JSON.stringify({ status }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
-    throw new Error(data.error?.message || "Failed to update ticket status");
+    throw new ApiError(data.error?.message || "Failed to update ticket status", {
+      code: data.error?.code,
+      status: res.status,
+      fields: data.error?.fields,
+      reasons: data.error?.reasons,
+    });
   }
   return res.json();
 }
@@ -601,4 +650,241 @@ export async function resetUserPassword(
     throw new Error(data.error?.message || data.error || "Failed to reset password");
   }
   return res.json();
-}
+}
+
+// Lab 4: Actions Taken and Ticket Workflow
+export interface ActionTaken {
+  id: number;
+  ticketId: number;
+  actionAt: string;
+  description: string;
+  result: string | null;
+  status: "PLANNED" | "COMPLETED" | "CANCELLED";
+  followUpRequired: boolean;
+  followUpNote: string | null;
+  attachmentNotes: string | null;
+  assigneeId: number | null;
+  assignee?: { id: number; name: string; email?: string; role?: string } | null;
+  performedById: number;
+  performedBy: { id: number; name: string; email?: string; role?: string };
+  completedById: number | null;
+  completedBy?: { id: number; name: string; email?: string; role?: string } | null;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateActionTakenPayload {
+  actionAt?: string;
+  description: string;
+  result?: string;
+  status?: "PLANNED" | "COMPLETED";
+  followUpRequired?: boolean;
+  followUpNote?: string;
+  attachmentNotes?: string;
+  assigneeId?: number | null;
+  clientRequestId?: string;
+}
+
+export interface UpdateActionTakenPayload {
+  expectedVersion: number;
+  actionAt?: string;
+  description?: string;
+  result?: string;
+  status?: "PLANNED" | "COMPLETED" | "CANCELLED";
+  followUpRequired?: boolean;
+  followUpNote?: string;
+  attachmentNotes?: string;
+  assigneeId?: number | null;
+}
+
+export interface TicketStatusHistoryItem {
+  id: number;
+  fromStatus: string | null;
+  toStatus: string;
+  reason: string | null;
+  changedAt: string;
+  changedBy: {
+    id: number;
+    name: string;
+  };
+}
+
+export async function getActionsTaken(ticketId: number): Promise<ActionTaken[]> {
+  const res = await fetch(`${API_URL}/api/tickets/${ticketId}/actions`, {
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new ApiError(data.error?.message || "Failed to load actions taken", {
+      code: data.error?.code,
+      status: res.status,
+    });
+  }
+  return res.json();
+}
+
+export async function createActionTaken(
+  ticketId: number,
+  payload: CreateActionTakenPayload
+): Promise<ActionTaken> {
+  const res = await fetch(`${API_URL}/api/staff/tickets/${ticketId}/actions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new ApiError(data.error?.message || "Failed to create action taken", {
+      code: data.error?.code,
+      status: res.status,
+      fields: data.error?.fields,
+    });
+  }
+  return res.json();
+}
+
+export async function updateActionTaken(
+  ticketId: number,
+  actionId: number,
+  payload: UpdateActionTakenPayload
+): Promise<ActionTaken> {
+  const res = await fetch(`${API_URL}/api/staff/tickets/${ticketId}/actions/${actionId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new ApiError(data.error?.message || "Failed to update action taken", {
+      code: data.error?.code,
+      status: res.status,
+      fields: data.error?.fields,
+    });
+  }
+  return res.json();
+}
+
+export async function getTicketStatusHistory(
+  ticketId: number
+): Promise<TicketStatusHistoryItem[]> {
+  const res = await fetch(`${API_URL}/api/tickets/${ticketId}/history`, {
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new ApiError(data.error?.message || "Failed to load ticket status history", {
+      code: data.error?.code,
+      status: res.status,
+    });
+  }
+  return res.json();
+}
+
+export async function reopenTicket(
+  ticketId: number,
+  payload?: { reason?: string; expectedVersion?: number }
+): Promise<TicketDetail> {
+  const res = await fetch(`${API_URL}/api/tickets/${ticketId}/reopen`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(payload || {}),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new ApiError(data.error?.message || "Failed to reopen ticket", {
+      code: data.error?.code,
+      status: res.status,
+    });
+  }
+  return res.json();
+}
+
+// Lab 4 - Issue #51: Dashboard APIs
+
+export interface DashboardTicket {
+  id: number;
+  ticketNumber: string;
+  title: string;
+  currentStatus: string;
+  updatedAt: string;
+}
+
+export interface RequesterDashboardData {
+  metrics: {
+    myOpenTickets: number;
+    waitingForRequester: number;
+    inProgress: number;
+    resolved: number;
+    closed: number;
+  };
+  links: {
+    myOpenTickets: string;
+    waitingForRequester: string;
+    inProgress: string;
+    resolved: string;
+    closed: string;
+  };
+  attentionTickets: DashboardTicket[];
+  recentTickets: DashboardTicket[];
+  timeZone: string;
+  generatedAt: string;
+}
+
+export interface StaffDashboardData {
+  metrics: {
+    newTickets: number;
+    openTickets: number;
+    inProgress: number;
+    waitingForRequester: number;
+    myAssigned: number;
+    unassigned: number;
+  };
+  links: {
+    newTickets: string;
+    openTickets: string;
+    inProgress: string;
+    waitingForRequester: string;
+    myAssigned: string;
+    unassigned: string;
+  };
+  recentTickets: DashboardTicket[];
+  userCounts?: {
+    totalUsers: number;
+    activeUsers: number;
+    inactiveUsers: number;
+  };
+  timeZone: string;
+  generatedAt: string;
+}
+
+export async function getRequesterDashboard(): Promise<RequesterDashboardData> {
+  const res = await fetch(`${API_URL}/api/dashboard/requester`, {
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new ApiError(data.error?.message || "Failed to load requester dashboard", {
+      code: data.error?.code,
+      status: res.status,
+    });
+  }
+  return res.json();
+}
+
+export async function getStaffDashboard(): Promise<StaffDashboardData> {
+  const res = await fetch(`${API_URL}/api/dashboard/staff`, {
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new ApiError(data.error?.message || "Failed to load staff dashboard", {
+      code: data.error?.code,
+      status: res.status,
+    });
+  }
+  return res.json();
+}

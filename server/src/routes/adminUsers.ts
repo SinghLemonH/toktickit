@@ -4,6 +4,7 @@ import {
   requireAuth,
   requirePasswordChangeCompleted,
   requireRole,
+  AuthenticatedRequest,
 } from "../middleware/auth.js";
 import {
   validatePasswordComplexity,
@@ -144,7 +145,7 @@ adminUsersRouter.post("/", async (req: Request, res: Response) => {
  * PATCH /api/admin/users/:id
  * Updates user account with safety guards (BR-16 self-deactivation, BR-17 last admin).
  */
-adminUsersRouter.patch("/:id", async (req: Request, res: Response) => {
+adminUsersRouter.patch("/:id", async (req: AuthenticatedRequest, res: Response) => {
   try {
     const prisma = getPrisma();
     const userId = parseInt(req.params.id, 10);
